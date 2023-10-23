@@ -1,4 +1,4 @@
-#include "bfs.c"
+#include "bfs.h"
 
 int init_filesystem()
 {
