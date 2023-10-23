@@ -28,6 +28,9 @@
 
 struct vcb_s* vcb;
 
+int is_valid_volname(char* name);
+void print_uuid(uint8_t* uuid);
+
 int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 {
 	printf ("Initializing File System with %ld blocks with a block size of %ld\n", 
@@ -40,7 +43,8 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 
 	if (vcb->magic == 0x434465657A) {
 
-		fprintf(stderr, "Existing filesystem found!\n");
+		fprintf(stderr, "Existing filesystem found with uuid \n");
+		print_uuid(vcb->uuid);
 
 	} else { 
 
@@ -55,7 +59,8 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 			return 1;
 		} 
 
-		printf("Sucessfully created volume %s\n", vcb->volume_name);
+		printf("Sucessfully created volume %s with uuid ", vcb->volume_name);
+		print_uuid(vcb->uuid);
 
 		if (LBAwrite(vcb, 1, 0) != 1) {
 			fprintf(stderr, "Error: Unable to LBAwrite VCB to disk\n");
@@ -93,4 +98,14 @@ int is_valid_volname(char* string) {
 	}
 	
 	return 1;
+}
+
+void print_uuid(uint8_t* uuid) 
+{
+	for(int i = 0; i < 16; i++) {
+		if (i > 0 && i % 4 == 0) 
+			printf("-");
+		printf("%x", uuid[i]);
+	}
+	printf("\n");
 }

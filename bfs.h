@@ -55,6 +55,9 @@ int vcb_init(struct vcb_s* vcb, char* name);
  */
 int create_dentry(struct vcb_s* vcb, struct direntry_s* dentry, char* name, int size, int type);
 
-int is_valid_volname(char* string);
+/*
+ * Generate a random UUID. Returns 0 on success, non-zero on failure
+ */
+void bfs_generate_uuid(uint8_t* uuid);
 
 #endif
