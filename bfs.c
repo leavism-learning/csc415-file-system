@@ -9,6 +9,7 @@ int vcb_init(struct vcb_s* vcb, char* name) {
 	vcb->block_count  = BLOCK_COUNT;
 	vcb->free_blocks  = BLOCK_COUNT;
 	vcb->block_head   = 1;        
+	vcb->magic 	  = 0x434465657A;
 
 	if (!is_valid_volname(name)) {
 		return 1;

@@ -21,27 +21,28 @@
  * represents the usage status of one data block
  */
 struct vcb_s {
-  uint32_t       block_size;              // block size
-  uint32_t       block_count;             // number of blocks
-  uint32_t       free_blocks;             // bitmap of unused blocks
-  uint64_t       block_head;              // location of first block
-  char           volume_name[64];         // volume name
-  uint8_t        uuid[16];                // volume signature 
+	uint32_t       	block_size;             // block size
+	uint32_t       	block_count;            // number of blocks
+	uint32_t       	free_blocks;            // bitmap of unused blocks
+	uint64_t       	block_head;             // location of first block
+	char           	volume_name[64];        // volume name
+	uint8_t        	uuid[16];               // volume signature 
+	uint64_t	magic;			// magic signature
 };
 
 /*
  * Directory Entry stores first-class information about a file
  */
 struct direntry_s {
-  uint64_t  vcb;                          // address of the volume control block
-  char      name[MAX_FILENAME_LEN];       // file name
-  uint32_t  size;                         // file size in bytes
-  uint64_t  location;                     // file location in memory
-  uint8_t   file_type;                    // 0 if directory, otherwise file 
-  uint8_t   num_blocks;                   // number of blocks used by the file
-  time_t    date_created;                 // file creation time       
-  time_t    date_modified;                // last time file was modified
-  time_t    date_accessed;                // last time file was read
+	uint64_t  vcb;                          // address of the volume control block
+	char      name[MAX_FILENAME_LEN];       // file name
+	uint32_t  size;                         // file size in bytes
+	uint64_t  location;                     // file location in memory
+	uint8_t   file_type;                    // 0 if directory, otherwise file 
+	uint8_t   num_blocks;                   // number of blocks used by the file
+	time_t    date_created;                 // file creation time       
+	time_t    date_modified;                // last time file was modified
+	time_t    date_accessed;                // last time file was read
 };
 
 /*
