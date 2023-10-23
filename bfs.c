@@ -10,9 +10,10 @@ int vcb_init(struct vcb_s* vcb, char* name) {
 	vcb->free_blocks  = BLOCK_COUNT;
 	vcb->block_head   = 0;        
 
-	if (strlen(name) > 63) {
+	if (!is_valid_volname(name)) {
 		return 1;
 	}
+
 	strcpy(vcb->volume_name, name);
 
 	return 0;
@@ -41,5 +42,25 @@ int create_dentry(struct vcb_s* vcb, struct direntry_s* dentry, char* name, int 
 	}
 	strcpy(dentry->name, name);
 
+	return 0;
+}
+
+
+/*
+ * Check if a given string is a valid volume name. Valid strings must:
+ * Have length 1-63
+ * Contain only english alphabet letters and numbers
+ */
+int is_valid_volname(char* string) {
+	int len = strlen(string);
+	if (len < 1 || len > 63) 
+		return 1;
+
+	for (int i = 0; i < len; i++) {
+		if (!isascii( (int) string[i])) {
+			return 1;
+		}
+	}
+	
 	return 0;
 }
