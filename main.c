@@ -5,7 +5,7 @@ int init_filesystem()
 	printf("Creating filesystem\n");
 
 	char* name = "my_volume";
-	struct vcb_s* vcb = malloc(sizeof(struct vcb_s));
+	struct vcb_s* vcb = malloc(BLOCK_SIZE);
 
 	if (vcb_init(vcb, name)) {
 		printf("Failed to create volume\n");
