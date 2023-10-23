@@ -40,14 +40,18 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 
 	if (vcb->magic == 0x434465657A) {
 
-		printf("Existing filesystem found!\n");
+		fprintf(stderr, "Existing filesystem found!\n");
 
 	} else { 
 
 		char* volume_name = "MyVolume";
 
+		if(!is_valid_volname(volume_name)) {
+			fprintf(stderr, "Invalid volume name \n");
+		}
+
 		if (vcb_init(vcb, volume_name)) {
-			printf("Failed to create volume\n");
+			fprintf(stderr, "Failed to create volume\n");
 			return 1;
 		} 
 
@@ -70,4 +74,23 @@ void exitFileSystem ()
 	vcb = NULL;
 
 	printf ("System exiting\n");
+}
+
+/*
+ * Check if a given string is a valid volume name. Valid strings must:
+ * Have length 1-63
+ * Contain only english alphabet letters and numbers
+ */
+int is_valid_volname(char* string) {
+	int len = strlen(string);
+	if (len < 1 || len > 63) 
+		return 0;
+
+	for (int i = 0; i < len; i++) {
+		if (!isascii( (int) string[i])) {
+			return 0;
+		}
+	}
+	
+	return 1;
 }
