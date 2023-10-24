@@ -43,7 +43,7 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 
 	if (vcb->magic == 0x434465657A) {
 
-		fprintf(stderr, "Existing filesystem found with uuid \n");
+		fprintf(stderr, "Existing filesystem found with uuid ");
 		print_uuid(vcb->uuid);
 
 	} else { 

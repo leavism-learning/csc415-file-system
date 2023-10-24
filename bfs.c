@@ -13,6 +13,9 @@ int vcb_init(struct vcb_s* vcb, char* name)
 	vcb->block_head   = 1;        
 	vcb->magic 	  = 0x434465657A;
 
+	if (strlen(name) > 63)
+		return 1;
+
 	strcpy(vcb->volume_name, name);
 
 	bfs_generate_uuid(vcb->uuid);
