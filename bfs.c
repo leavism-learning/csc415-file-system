@@ -55,11 +55,11 @@ void bfs_generate_uuid(uint8_t* uuid)
 	getrandom(uuid, 16, 0);
 
 	// set the four most significant bits of the 7th byte to 0100
-	uint8_t four_msb_mask = 0b11110000;
-	uuid[8] = (uuid[8] & ~four_msb_mask) | 0b01000000;
+	uuid[6] &= 0x0F;
+	uuid[6] |= 0x40;
 
 	// set the two most significant bits of the 9th byte to 10
-	uint8_t two_msb_mask = 0b11000000;
-	uuid[10] = (uuid[8] & ~two_msb_mask) | 0b01000000;
+	uuid[8] &= 0x3F;
+	uuid[8] |= 0x80;
 }
 

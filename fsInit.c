@@ -102,10 +102,10 @@ int is_valid_volname(char* string) {
 
 void print_uuid(uint8_t* uuid) 
 {
-	for(int i = 0; i < 16; i++) {
-		if (i > 0 && i % 4 == 0) 
+	for (int i = 0; i < 16; i++) {
+		if ( i >= 4 && i % 2 == 0 && i < 12)
 			printf("-");
-		printf("%x", uuid[i]);
+		printf("%02X", uuid[i]);
 	}
 	printf("\n");
 }
