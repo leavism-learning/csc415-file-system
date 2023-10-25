@@ -17,16 +17,18 @@
 
 #define START_BLOCK 1  // using 1 as starting block for root for now, 0 for vcb
 
+#define DENTRY_COUNT 50 // for testing purposes
+
 // Current status: In progress, does not work
 
 // init_dentry : initial # of dentry
 int rd_init(int init_dentry) {
     // Allocate memory -> determine how much from dentry struct
-    int bytes_needed = init_dentry * sizeof(struct direntry_s);
+    int bytes_needed = DENTRY_COUNT * sizeof(struct direntry_s);
     int blocks_needed = (bytes_needed + (BLOCK_SIZE - 1)) / BLOCK_SIZE;
     bytes_needed = BLOCK_SIZE * blocks_needed;
     int total_dentry_count = bytes_needed / sizeof(struct direntry_s);
-    struct direntry_s* dir = malloc(bytes_needed);
+    struct direntry_s* dir = malloc(bytes_needed); // array to hold 
     // Allocate the blocks in vcb -> check how we are doing free space
     // initialize directory entry
     for (int i = 0; i < blocks_needed; i++) {
