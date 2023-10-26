@@ -1,9 +1,7 @@
 #include "bfs.h"
-#include <sys/random.h>
 
 /*
  * Creates a volume with the given name. Returns 0 on success, non-zero on failure
- * TODO generate uuid
  */
 int vcb_init(struct vcb_s* vcb, char* name) 
 {
@@ -11,7 +9,7 @@ int vcb_init(struct vcb_s* vcb, char* name)
 	vcb->block_count  = BLOCK_COUNT;
 	vcb->free_blocks  = BLOCK_COUNT;
 	vcb->block_head   = 1;        
-	vcb->magic 	  = 0x434465657A;
+	vcb->magic 	  = 0x4465657A;
 
 	if (strlen(name) > 63)
 		return 1;

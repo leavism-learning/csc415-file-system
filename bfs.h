@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <sys/random.h>
 
 #define MAX_FILENAME_LEN 64
 #define BLOCK_SIZE 512
@@ -27,7 +28,7 @@ struct vcb_s {
 	uint64_t       	block_head;             // location of first block
 	char           	volume_name[64];        // volume name
 	uint8_t        	uuid[16];               // volume signature 
-	uint64_t	magic;			// magic signature
+	uint32_t	magic;			// magic signature
 };
 
 /*
