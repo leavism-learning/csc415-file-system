@@ -37,12 +37,12 @@ struct vcb_s {
 
 /*
  * Directory Entry stores first-class information about a file
+ * 18 bytes size, 
  */
 struct direntry_s {
-	uint64_t  vcb;                          // address of the volume control block
+	uint64_t  size;               		// file size LIMIT ~18k petabytes
+	uint32_t  location;                   	// file location in memory
 	char      name[MAX_FILENAME_LEN];       // file name
-	uint32_t  size;                         // file size in bytes
-	uint64_t  location;                     // file location in memory
 	uint8_t   file_type;                    // 0 if directory, otherwise file 
 	uint8_t   num_blocks;                   // number of blocks used by the file
 	time_t    date_created;                 // file creation time       
