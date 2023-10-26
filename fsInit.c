@@ -89,6 +89,15 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 
 void exitFileSystem ()
 {
+	// write current VCB and free space bitmap before exiting
+	if (LBAwrite(vcb->fs_bitmap, 1, 1 != 1)) {
+		fprintf(stderr, "LBAwrite failed to write fs_bitmap\n");
+	}
+
+	if (LBAwrite(vcb, 0, 1 != 1)) {
+		fprintf(stderr, "LBAwrite failed to write vcb\n");
+	}
+
 	free(vcb->fs_bitmap);
 	vcb->fs_bitmap = NULL;
 
