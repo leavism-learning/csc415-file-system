@@ -1,3 +1,7 @@
+/*
+ * Definitions for BFS system
+ * Author: Griffin Evans
+ */
 #ifndef BFS_H
 #define BFS_H
 
@@ -24,7 +28,7 @@
 struct vcb_s {
 	uint32_t       	block_size;             // block size
 	uint32_t       	block_count;            // number of blocks
-	uint32_t       	free_blocks;            // bitmap of unused blocks
+	uint8_t*       	fs_bitmap;            	// bitmap of unused blocks
 	uint64_t       	block_head;             // location of first block
 	char           	volume_name[64];        // volume name
 	uint8_t        	uuid[16];               // volume signature 

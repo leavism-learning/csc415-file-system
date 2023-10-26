@@ -1,3 +1,7 @@
+/*
+ * Functions for BFS system.
+ * Author: Griffin Evans
+ */
 #include "bfs.h"
 
 /*
@@ -7,7 +11,6 @@ int vcb_init(struct vcb_s* vcb, char* name)
 {
 	vcb->block_size   = BLOCK_SIZE;
 	vcb->block_count  = BLOCK_COUNT;
-	vcb->free_blocks  = BLOCK_COUNT;
 	vcb->block_head   = 1;        
 	vcb->magic 	  = 0x4465657A;
 

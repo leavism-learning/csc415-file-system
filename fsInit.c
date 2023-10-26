@@ -46,22 +46,36 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 		fprintf(stderr, "Existing filesystem found with uuid ");
 		print_uuid(vcb->uuid);
 
+		//TODO: initialize free space
+		vcb->fs_bitmap = malloc(BLOCK_SIZE);
+
+		// read free blocks bitmap
+		LBAread(vcb->fs_bitmap, 1, 1);
+
 	} else { 
 
+		// for now, volume name is hardcoded
 		char* volume_name = "MyVolume";
 
 		if(!is_valid_volname(volume_name)) {
 			fprintf(stderr, "Invalid volume name \n");
 		}
 
+		// populate vcb with initial values 
 		if (vcb_init(vcb, volume_name)) {
 			fprintf(stderr, "Failed to create volume\n");
 			return 1;
 		} 
 
-		printf("Sucessfully created volume %s with uuid ", vcb->volume_name);
-		print_uuid(vcb->uuid);
+		// calloc will initialize all bytes to 0x0
+		vcb->fs_bitmap = calloc(BLOCK_SIZE, 1);
+		if (LBAwrite(vcb, 1, 0) != 1) {
+			fprintf(stderr, "Error: Unable to LBAwrite fsbitmap to disk\n");
+			return 1;
+		}
 
+
+		// write newly created VCB to disk
 		if (LBAwrite(vcb, 1, 0) != 1) {
 			fprintf(stderr, "Error: Unable to LBAwrite VCB to disk\n");
 			return 1;
@@ -75,6 +89,9 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 
 void exitFileSystem ()
 {
+	free(vcb->fs_bitmap);
+	vcb->fs_bitmap = NULL;
+
 	free(vcb);
 	vcb = NULL;
 
