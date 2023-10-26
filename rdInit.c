@@ -22,7 +22,7 @@
 // Current status: In progress, does not work
 
 // init_dentry : initial # of dentry
-int rd_init(int init_dentry) {
+int rd_init(int init_dentry, struct vcb_s vcb) {
     // Allocate memory -> determine how much from dentry struct
     int bytes_needed = DENTRY_COUNT * sizeof(struct direntry_s);
     int blocks_needed = (bytes_needed + (BLOCK_SIZE - 1)) / BLOCK_SIZE;
@@ -35,6 +35,7 @@ int rd_init(int init_dentry) {
         dir[i].name[0] = '\0';
         // check if we need a value to see in direntry for labeling if it is used or not
     }
+    //vcb.
     // initializing . for root
     strcpy(dir[0].name, ".");
     dir[0].size = bytes_needed; // prof has us using total dentry count
