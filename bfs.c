@@ -9,10 +9,11 @@
  */
 int vcb_init(struct vcb_s* vcb, char* name) 
 {
-	vcb->block_size   = BLOCK_SIZE;
-	vcb->block_count  = BLOCK_COUNT;
-	vcb->block_head   = 1;        
-	vcb->magic 	  = 0x4465657A;
+	vcb->block_size   	= BLOCK_SIZE;
+	vcb->block_count  	= BLOCK_COUNT;
+	vcb->block_head   	= 1;        
+	vcb->magic 	  	= 0x4465657A;
+	vcb->block_group_size 	= block_size / sizeof( struct block_group_desc );
 
 	if (strlen(name) > 63)
 		return 1;
@@ -67,3 +68,7 @@ void bfs_generate_uuid(uint8_t* uuid)
 	uuid[8] |= 0x80;
 }
 
+int init_directory(int is_root)
+{
+
+}
