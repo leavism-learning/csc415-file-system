@@ -36,19 +36,17 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 	printf ("Initializing File System with %ld blocks with a block size of %ld\n", 
 			numberOfBlocks, blockSize);
 
-	vcb = malloc(BLOCK_SIZE);
+	vcb = malloc(blockSize);
 
 	// read first block of memory
 	LBAread(vcb, 1, 0);
 
-	if (vcb->magic == 0x434465657A) {
+	if (vcb->magic == 0x4465657A) {
 
 		fprintf(stderr, "Existing filesystem found with uuid ");
 		print_uuid(vcb->uuid);
 
 		//TODO: initialize free space
-		vcb->fs_bitmap = malloc(BLOCK_SIZE);
-
 
 	} else { 
 
@@ -60,20 +58,24 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 		}
 
 		// populate vcb with initial values 
-		if (vcb_init(vcb, volume_name)) {
+		if (vcb_init(vcb, volume_name, numberOfBlocks, blockSize)) {
 			fprintf(stderr, "Failed to create volume\n");
 			return 1;
 		} 
-
-		// allocate one empty block for block group descriptor table
-		bfs_group_desc = calloc(BLOCK_SIZE, 1);
-
 
 		// write newly created VCB to disk
 		if (LBAwrite(vcb, 1, 0) != 1) {
 			fprintf(stderr, "Error: Unable to LBAwrite VCB to disk\n");
 			return 1;
 		}
+
+		// allocate one empty block for block group descriptor table
+		struct block_group_desc* bfs_group_desc = calloc(vcb->block_size, vcb->gdt_size);
+		init_gdt(vcb, bfs_group_desc);
+		printf("Initialized gdt\n");
+		//LBAwrite(bfs_group_desc, vcb->gdt_size, 1);
+
+
 	}
 
 
@@ -83,17 +85,10 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 
 void exitFileSystem ()
 {
-	// write current VCB and free space bitmap before exiting
-	if (LBAwrite(vcb->fs_bitmap, 1, 1 != 1)) {
-		fprintf(stderr, "LBAwrite failed to write fs_bitmap\n");
-	}
-
+	// write current VCB 
 	if (LBAwrite(vcb, 0, 1 != 1)) {
 		fprintf(stderr, "LBAwrite failed to write vcb\n");
 	}
-
-	free(vcb->fs_bitmap);
-	vcb->fs_bitmap = NULL;
 
 	free(vcb);
 	vcb = NULL;
@@ -128,31 +123,4 @@ void print_uuid(uint8_t* uuid)
 		printf("%02X", uuid[i]);
 	}
 	printf("\n");
-}
-
-
-/*
- * create the group descriptor table
- * group descriptor table contains block_size / 24 block groups
- *
- * uint8_t* gdt: buffer to store gdt data  
- * uint8_t size: number of blocks allocated for the group descriptor table (at least one) 
- */
-void init_gdt(uint8_t* gdt, uint8_t num_blocks) 
-{
-	// 0th block is VCB, block after the VCB is the GDT
-	int lba_pos = 1;
-
-	int block_start = num_blocks + 1;
-
-	for (int i = 0; i < num_blocks * vcb->block_size; i += sizeof(struct block_group_desc)) {
-
-		struct block_group_desc descriptor;
-		descriptor.bitmap_location = block_start;
-		descriptor.free_blocks_count = 0;
-		descriptor.dirs_count = 0;
-
-		gdt[i] = block_group_desc descriptor;
-		lba_pos++;
-	}
 }

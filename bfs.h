@@ -13,8 +13,6 @@
 #include <sys/random.h>
 
 #define MAX_FILENAME_LEN 64
-#define BLOCK_SIZE 512
-#define BLOCK_COUNT 8
 #define NUM_FILES 2048
 #define ROOT_INODE 1;
 
@@ -29,6 +27,8 @@ struct vcb_s {
 	uint8_t        	uuid[16];               // volume signature 
 	uint32_t	magic;			// magic signature
 	uint32_t	block_group_size;	// number of blocks per block group
+	uint32_t 	block_group_count;	// number of block groups
+	uint32_t	gdt_size;		// size (in blocks) for group descriptor table
 };
 
 /*
@@ -69,7 +69,13 @@ struct direntry_s {
 /*
  * Creates a volume with the given name. Returns 0 on success, non-zero on failure
  */
-int vcb_init(struct vcb_s* vcb, char* name);
+int vcb_init(struct vcb_s* vcb, char* name, uint64_t num_blocks, uint64_t block_size);
+
+/*
+ * Create the group descriptor table
+ */
+void init_gdt(struct vcb_s* vcb, struct block_group_desc* gdt);
+
 
 /*
  * Initialize a directory entry. Returns 0 on success, non-zero on failure
