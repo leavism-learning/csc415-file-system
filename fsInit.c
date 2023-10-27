@@ -46,7 +46,6 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 		fprintf(stderr, "Existing filesystem found with uuid ");
 		print_uuid(vcb->uuid);
 
-		//TODO: initialize free space
 
 	} else { 
 
@@ -70,15 +69,16 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 		}
 
 		// allocate one empty block for block group descriptor table
-		struct block_group_desc* bfs_group_desc = calloc(vcb->block_size, vcb->gdt_size);
-		init_gdt(vcb, bfs_group_desc);
+		struct block_group_desc* bfs_gdt = calloc(vcb->block_size, vcb->gdt_size);
+		init_gdt(vcb, bfs_gdt);
 		printf("Initialized gdt\n");
-		//LBAwrite(bfs_group_desc, vcb->gdt_size, 1);
-
+		printf("first block info:\n");
+		struct block_group_desc first_entry = bfs_gdt[0];
+		printf("position: %d  free blocks count: %d\n", first_entry.bitmap_location, 
+				first_entry.free_blocks_count);
+		LBAwrite(bfs_gdt, vcb->gdt_size, 1);
 
 	}
-
-
 	return 0;
 }
 
