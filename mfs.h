@@ -81,11 +81,11 @@ struct block_group_desc {
 
 /*
  * Directory Entry stores first-class information about a file
- * 64 bytes size, 
+ * 64 bytes size
  */
 struct direntry_s {
-	uint64_t  size;               		// file size 
-	uint32_t  location;                   	// file location in memory
+	uint64_t  size;               		// file size in bytes (max 16384 PiB) 
+	uint32_t  location;                   	// lba position of file 
 	char      name[MAX_FILENAME_LEN];       // file name
 	uint8_t   file_type;                    // 0 if directory, otherwise file 
 	uint8_t   num_blocks;                   // number of blocks used by the file
@@ -117,7 +117,8 @@ typedef struct
 	struct fs_diriteminfo * di;		/* Pointer to the structure you return from read */
 } fdDir;
 
-extern struct vcb_s* fs_vcb;
+extern struct vcb_s* bfs_vcb;
+extern struct block_group_desc* bfs_gdt;
 
 // Key directory functions
 int fs_mkdir(const char *pathname, mode_t mode);
