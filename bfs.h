@@ -1,5 +1,5 @@
 /*
- * Definitions for BFS system Author: Griffin Evans */
+ * Function definitions for BFS system Author: Griffin Evans */
 #ifndef BFS_H
 #define BFS_H
 
@@ -13,18 +13,18 @@
 /*
  * Creates a volume with the given name. Returns 0 on success, non-zero on failure
  */
-int bfs_vcb_init(struct vcb_s* vcb, char* name, uint64_t num_blocks, uint64_t block_size);
+int bfs_vcb_init(char* name, uint64_t num_blocks, uint64_t block_size);
 
 /*
  * Create the group descriptor table
  */
-int bfs_gdt_init(struct vcb_s* vcb, struct block_group_desc* gdt);
+int bfs_gdt_init(struct block_group_desc* gdt);
 
 
 /*
  * Initialize a directory entry. Returns 0 on success, non-zero on failure
  */
-int create_dentry(struct vcb_s* vcb, struct direntry_s* dentry, char* name, int size, int type);
+int create_dentry(struct direntry_s* dentry, char* name, int size, int type);
 
 /*
  * Generate a random UUID. Returns 0 on success, non-zero on failure
@@ -37,7 +37,7 @@ void bfs_generate_uuid(uint8_t* uuid);
  */
 uint8_t get_bit_value(uint8_t byte, uint8_t pos);
 
-int bfs_get_first_block(struct vcb_s* vcb, struct block_group_desc* gdt);
+int bfs_get_first_block(struct block_group_desc* gdt);
 
 
 #endif

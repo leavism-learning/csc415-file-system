@@ -79,7 +79,6 @@ struct block_group_desc {
 	uint32_t dirs_count;
 };
 
-
 /*
  * Directory Entry stores first-class information about a file
  * 18 bytes size, 
@@ -117,6 +116,8 @@ typedef struct
 	//DE *	directory;			/* Pointer to the loaded directory you want to iterate */
 	struct fs_diriteminfo * di;		/* Pointer to the structure you return from read */
 } fdDir;
+
+extern struct vcb_s* fs_vcb;
 
 // Key directory functions
 int fs_mkdir(const char *pathname, mode_t mode);

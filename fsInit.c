@@ -25,8 +25,7 @@
 #include "mfs.h"
 #include "bfs.h"
 
-
-struct vcb_s* vcb;
+struct vcb_s* fs_vcb;
 
 int is_valid_volname(char* name);
 void print_uuid(uint8_t* uuid);
@@ -36,15 +35,15 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 	printf ("Initializing File System with %ld blocks with a block size of %ld\n", 
 			numberOfBlocks, blockSize);
 
-	vcb = malloc(blockSize);
+	fs_vcb = malloc(blockSize);
 
 	// read first block of memory
-	LBAread(vcb, 1, 0);
+	LBAread(fs_vcb, 1, 0);
 
-	if (vcb->magic == 0x4465657A) {
+	if (fs_vcb->magic == 0x4465657A) {
 
 		fprintf(stderr, "Existing filesystem found with uuid ");
-		print_uuid(vcb->uuid);
+		print_uuid(fs_vcb->uuid);
 
 
 	} else { 
@@ -56,21 +55,21 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 			fprintf(stderr, "Invalid volume name \n");
 		}
 
-		// populate vcb with initial values 
-		if (bfs_vcb_init(vcb, volume_name, numberOfBlocks, blockSize)) {
+		// populate fs_vcb with initial values 
+		if (bfs_vcb_init(volume_name, numberOfBlocks, blockSize)) {
 			fprintf(stderr, "Failed to create volume\n");
 			return 1;
 		} 
 
 		// write newly created VCB to disk
-		if (LBAwrite(vcb, 1, 0) != 1) {
+		if (LBAwrite(fs_vcb, 1, 0) != 1) {
 			fprintf(stderr, "Error: Unable to LBAwrite VCB to disk\n");
 			return 1;
 		}
 
 		// allocate one empty block for block group descriptor table
-		struct block_group_desc* bfs_gdt = calloc(vcb->block_size, vcb->gdt_size);
-		if (bfs_gdt_init(vcb, bfs_gdt)) {
+		struct block_group_desc* bfs_gdt = calloc(fs_vcb->block_size, fs_vcb->gdt_size);
+		if (bfs_gdt_init(bfs_gdt)) {
 			fprintf(stderr, "Error: Unable to initialize GDT\n");
 			return 1;
 		}
@@ -79,7 +78,7 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 		struct block_group_desc first_entry = bfs_gdt[0];
 		printf("position: %d  free blocks count: %d\n", first_entry.bitmap_location, 
 				first_entry.free_blocks_count);
-		if (LBAwrite(bfs_gdt, vcb->gdt_size, 1) != 1) {
+		if (LBAwrite(bfs_gdt, fs_vcb->gdt_size, 1) != 1) {
 			fprintf(stderr, "Error: Unable to LBAwrite GDT to disk\n");
 			return 1;
 		}
@@ -92,12 +91,12 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 void exitFileSystem ()
 {
 	// write current VCB 
-	if (LBAwrite(vcb, 0, 1 != 1)) {
-		fprintf(stderr, "LBAwrite failed to write vcb\n");
+	if (LBAwrite(fs_vcb, 0, 1 != 1)) {
+		fprintf(stderr, "LBAwrite failed to write fs_vcb\n");
 	}
 
-	free(vcb);
-	vcb = NULL;
+	free(fs_vcb);
+	fs_vcb = NULL;
 
 	printf ("System exiting\n");
 }
