@@ -27,11 +27,12 @@
 
 struct vcb_s* bfs_vcb;
 struct block_group_desc* bfs_gdt;
+struct bfs_dir_entry* bfs_root;
 
 int is_valid_volname(char* name);
 void print_uuid(uint8_t* uuid);
 
-int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
+int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 {
 	printf ("Initializing File System with %ld blocks with a block size of %ld\n", 
 			numberOfBlocks, blockSize);
@@ -41,12 +42,22 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 	// read first block of memory
 	LBAread(bfs_vcb, 1, 0);
 
-	if (bfs_vcb->magic == 0x4465657A) {
+	// if the file system already exists, load it 
+	if (bfs_vcb->magic == BFS_MAGIC) {
 
 		fprintf(stderr, "Existing filesystem found with uuid ");
 		print_uuid(bfs_vcb->uuid);
 
 
+	/*
+	 * if the file system does not exist, create it 
+	 * broadly there are 3 steps here: 
+	 * first, create the vcb, which is always the 0th block
+	 * next, create the gdt, which always starts at the 1st block, and is usually one block
+	 * but can be larger if necessary.
+	* finally, create the directory array, which starts after the gdt, and is arbitrarily 
+	* long
+	*/ 
 	} else { 
 
 		// for now, volume name is hardcoded
@@ -74,16 +85,29 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 			fprintf(stderr, "Error: Unable to initialize GDT\n");
 			return 1;
 		}
-		printf("Initialized gdt\n");
+		printf("Initialized gdt with %d groups of size %d\n", 
+				bfs_vcb->block_group_count, bfs_vcb->block_group_size);
 		printf("first block info:\n");
 		struct block_group_desc first_entry = bfs_gdt[0];
-		printf("position: %d  free blocks count: %d\n", first_entry.bitmap_location, 
+		printf("position: %ld  free blocks count: %d\n", first_entry.bitmap_location, 
 				first_entry.free_blocks_count);
 		if (LBAwrite(bfs_gdt, bfs_vcb->gdt_size, 1) != 1) {
 			fprintf(stderr, "Error: Unable to LBAwrite GDT to disk\n");
 			return 1;
 		}
 
+		// initialize root directory
+		int pos = bfs_get_free_block();
+		if (pos == -1) {
+			fprintf(stderr, "Error: Unable to get free block for root directory\n");
+		}
+
+		// get buffer for root directory
+		struct direntry_s* root_directory = malloc(bfs_vcb->block_size);
+		uint8_t* buffer = malloc(bfs_vcb->block_size);
+		LBAread(buffer, 1, pos);
+		free(buffer);
+		bfs_create_root(pos);
 	}
 	return 0;
 }
@@ -91,10 +115,18 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 
 void exitFileSystem ()
 {
+	//wirte current GDT
+	if (LBAwrite(bfs_gdt, 1, bfs_vcb->gdt_size) != bfs_vcb->gdt_size) {
+		fprintf(stderr, "Error: LBAwrite failed to write GDT\n");
+	}
+	free(bfs_gdt);
+	bfs_gdt = NULL;
+
 	// write current VCB 
 	if (LBAwrite(bfs_vcb, 0, 1 != 1)) {
 		fprintf(stderr, "LBAwrite failed to write bfs_vcb\n");
 	}
+
 
 	free(bfs_vcb);
 	bfs_vcb = NULL;

@@ -5,8 +5,6 @@
 
 #include "bfs.h"
 
-#include "fsLow.h"
-
 /*
  * Creates a volume with the given name. Returns 0 on success, non-zero on failure
  */
@@ -34,39 +32,41 @@ int bfs_vcb_init(char* name, uint64_t num_blocks, uint64_t block_size)
 }
 
 /*
- * Create the group descriptor table
- * Group descriptor table contains block_size / 24 block groups
- * Each block group contains BLOCK_SIZE * 8 blocks.
+ * Populate the group descriptor table
+ * Group descriptor table contains block_size / sizeof(block_group_desc) block groups
+ * Each block group contains block_size * 8 blocks.
  *
  * uint8_t* gdt: buffer to store gdt data  
- * uint8_t  num_blocks: number of blocks in the system 
  */
 int bfs_gdt_init(struct block_group_desc* gdt) 
 {
-	// 0th block is VCB, block after the VCB is the GDT
-	int lba_pos = 1;
-
-	// first block is directly after the gdt
-	int block_group_pos = bfs_vcb->gdt_size + 1; 
+	// bitmap location is directly after the gdt
+	int bitmap_pos = bfs_vcb->gdt_size + 1; 
 
 	for (int i = 0; i < bfs_vcb->block_group_count; i++) {
 
+		// create block group descriptor
 		struct block_group_desc descriptor;
-		descriptor.bitmap_location = block_group_pos;
-		descriptor.free_blocks_count = bfs_vcb->block_group_size;
+		descriptor.bitmap_location = bitmap_pos;
+		descriptor.free_blocks_count = bfs_vcb->block_group_size - 1;
 		descriptor.dirs_count = 0;
 
 		uint8_t* bitmap = calloc(bfs_vcb->block_size, 1);
-		// set first block as used
-		bitmap[0] = bit_set(bitmap[0], 0);
-		if (LBAwrite(bitmap, 1, block_group_pos) != 1) {
+
+		// set 1st block of group because it contains the bitmap
+		block_bit_set(bitmap, 0);
+
+		// write bitmap to disk 
+		if (LBAwrite(bitmap, 1, bitmap_pos) != 1) {
 			fprintf(stderr, "Error: Unable to LBAwrite bitmap %d to disk\n", 
-					block_group_pos);
+					bitmap_pos);
 			return 1;
 		}
 
+		free(bitmap);
+
 		gdt[i] = descriptor;
-		block_group_pos += bfs_vcb->block_group_size;
+		bitmap_pos += bfs_vcb->block_group_size;
 	}
 	return 0;
 }
@@ -75,16 +75,12 @@ int bfs_gdt_init(struct block_group_desc* gdt)
 /*
  * Initialize a directory entry. 
  */
-int create_dentry(struct direntry_s* dentry, char* name, int size, int type) 
+int create_dir_entry(struct bfs_dir_entry* dentry, char* name, int size, int type) 
 {
 	//dentry->vcb = (uint64_t) &vcb;
 	dentry->size = size;
 	dentry->file_type = type;
 
-	// block size is size / BLOCK_SIZE, plus one block if there is a remainder
-	dentry->num_blocks = size / bfs_vcb->block_size;
-	if (size % bfs_vcb->block_size != 0)
-		dentry->num_blocks++;
 
 	time_t current_time = time(NULL);
 	dentry->date_created = current_time;
@@ -118,24 +114,5 @@ void bfs_generate_uuid(uint8_t* uuid)
 int init_directory(int is_root)
 {
 
-}
-
-/*
- * Return lba position of first available block or -1
- */
-int bfs_get_first_block(struct block_group_desc* gdt) 
-{
-	
-	for (int i = 0; i < bfs_vcb->block_group_count; i++) {
-		if (gdt[i].free_blocks_count > 0) {
-
-			uint8_t* bitmap = malloc(bfs_vcb->block_size);
-			LBAread(bitmap, 1, gdt[i].bitmap_location);
-
-			return get_empty_block(bitmap, bfs_vcb->block_size);
-		}
-	}
-
-	return -1;
 }
 

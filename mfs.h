@@ -40,10 +40,14 @@ typedef u_int64_t uint64_t;
 typedef u_int32_t uint32_t;
 #endif
 
-#define MAX_FILENAME_LEN 64
+#ifndef bfs_block_t
+typedef uint64_t bfs_block_t;
+#endif
+
+
+#define MAX_FILENAME_LEN 72
 #define NUM_FILES 2048
 #define ROOT_INODE 1;
-
 
 /*
  * vcb_s: Volume Control Block
@@ -51,7 +55,7 @@ typedef u_int32_t uint32_t;
  */
 struct vcb_s {
 	uint32_t       	block_size;             // block size
-	uint32_t       	block_count;            // number of blocks
+	uint64_t       	block_count;            // number of blocks
 	char           	volume_name[64];        // volume name
 	uint8_t        	uuid[16];               // volume signature 
 	uint32_t	magic;			// magic signature
@@ -74,24 +78,47 @@ struct vcb_s {
  *   8-12: The number of directories in the block group
  */
 struct block_group_desc {
-	uint32_t bitmap_location;
+	bfs_block_t bitmap_location;
 	uint32_t free_blocks_count;
 	uint32_t dirs_count;
 };
 
 /*
- * Directory Entry stores first-class information about a file
- * 64 bytes size
+ * bfs_extent_header: Header for BFS Extent Table blocks
+ * 
+ * An extent refers to a group of contiguous blocks. 
  */
-struct direntry_s {
-	uint64_t  size;               		// file size in bytes (max 16384 PiB) 
-	uint32_t  location;                   	// lba position of file 
-	char      name[MAX_FILENAME_LEN];       // file name
-	uint8_t   file_type;                    // 0 if directory, otherwise file 
-	uint8_t   num_blocks;                   // number of blocks used by the file
-	time_t    date_created;                 // file creation time       
-	time_t    date_modified;                // last time file was modified
-	time_t    date_accessed;                // last time file was read
+struct bfs_extent_header {
+	uint16_t eh_entries; 	// number of entries after the header
+	uint16_t eh_max; 	// max number of entries after header
+	uint16_t eh_depth;	// depth of this extent node in the extent tree. 0 = this extent 
+				// node points to data blocks; otherwise, this extent node 
+				// points to other extent nodes.
+};
+
+struct bfs_extent_idx {
+	uint32_t idx_start;	// This index node covers file blocks from 'block' onward. 
+	bfs_block_t idx_block;	// block number of the extent node that is the next level lower 
+				// in the tree. The tree node pointed to can be either another 
+				// internal node or a leaf node
+};
+
+struct bfs_extent {
+	bfs_block_t ext_block; 	// first block number that this extent covers
+	uint16_t ext_len;	// number of blocks covered by extent
+};
+
+/*
+ * Directory Entry stores first-class information about a file
+ */
+struct bfs_dir_entry {
+	uint64_t size;               		// file size in bytes (max 16384 PiB) 
+	bfs_block_t location;              	// lba position of file 
+	uint8_t  file_type;                   	// 0 if directory, otherwise file 
+	time_t   date_created;                 	// file creation time       
+	time_t   date_modified;                	// last time file was modified
+	time_t   date_accessed;                	// last time file was read
+	char     name[MAX_FILENAME_LEN];       	// file name
 };
 
 // This structure is returned by fs_readdir to provide the caller with information
@@ -119,6 +146,7 @@ typedef struct
 
 extern struct vcb_s* bfs_vcb;
 extern struct block_group_desc* bfs_gdt;
+extern struct bfs_dir_entry* bfs_root;
 
 // Key directory functions
 int fs_mkdir(const char *pathname, mode_t mode);

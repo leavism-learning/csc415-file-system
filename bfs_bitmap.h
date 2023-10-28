@@ -1,7 +1,7 @@
 #ifndef BFS_BITMAP
 #define BFS_BITMAP
 
-#include <stdint.h>
+#include "bfs.h"
 
 /*
  * Bitmap functions for BFS
@@ -24,5 +24,10 @@ int bit_clear(uint8_t byte, uint8_t pos);
 int bit_toggle(uint8_t byte, uint8_t pos);
 
 int get_empty_block(uint8_t* bitmap, int size);
+
+int bfs_get_free_block();
+
+// set vaule of a bit at given position in block
+void block_bit_set(uint8_t* block, uint8_t pos);
 
 #endif
