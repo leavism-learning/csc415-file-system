@@ -2,12 +2,15 @@
  * Functions for BFS system.
  * Author: Griffin Evans
  */
+
 #include "bfs.h"
+
+#include "fsLow.h"
 
 /*
  * Creates a volume with the given name. Returns 0 on success, non-zero on failure
  */
-int vcb_init(struct vcb_s* vcb, char* name, uint64_t num_blocks, uint64_t block_size) 
+int bfs_vcb_init(struct vcb_s* vcb, char* name, uint64_t num_blocks, uint64_t block_size) 
 {
 	vcb->block_size   	= block_size;
 	vcb->block_count  	= num_blocks;
@@ -16,10 +19,12 @@ int vcb_init(struct vcb_s* vcb, char* name, uint64_t num_blocks, uint64_t block_
 	vcb->block_group_count  = num_blocks / vcb->block_group_size;
 	if (num_blocks % vcb->block_group_size) 
 		vcb->block_group_count++;
-	vcb->gdt_size		= block_size / sizeof(struct block_group_desc);
-	if (block_size % sizeof(struct block_group_desc))
-		vcb->gdt_size++;
-	
+
+	int gdt_bytes = vcb->block_group_count * sizeof(struct block_group_desc);
+	vcb->gdt_size = 1;
+	if (gdt_bytes > vcb->block_size) {
+		vcb->gdt_size += gdt_bytes / block_size;
+	}
 
 	if (strlen(name) > 63)
 		return 1;
@@ -39,12 +44,13 @@ int vcb_init(struct vcb_s* vcb, char* name, uint64_t num_blocks, uint64_t block_
  * uint8_t* gdt: buffer to store gdt data  
  * uint8_t  num_blocks: number of blocks in the system 
  */
-void init_gdt(struct vcb_s* vcb, struct block_group_desc* gdt) 
+int bfs_gdt_init(struct vcb_s* vcb, struct block_group_desc* gdt) 
 {
 	// 0th block is VCB, block after the VCB is the GDT
 	int lba_pos = 1;
 
-	int block_group_pos = vcb->gdt_size; 
+	// first block is directly after the gdt
+	int block_group_pos = vcb->gdt_size + 1; 
 
 	for (int i = 0; i < vcb->block_group_count; i++) {
 
@@ -53,11 +59,19 @@ void init_gdt(struct vcb_s* vcb, struct block_group_desc* gdt)
 		descriptor.free_blocks_count = vcb->block_group_size;
 		descriptor.dirs_count = 0;
 
-		// TODO: init bitmap
+		uint8_t* bitmap = calloc(vcb->block_size, 1);
+		// set first block as used
+		bitmap[0] = bit_set(bitmap[0], 0);
+		if (LBAwrite(bitmap, 1, block_group_pos) != 1) {
+			fprintf(stderr, "Error: Unable to LBAwrite bitmap %d to disk\n", 
+					block_group_pos);
+			return 1;
+		}
 
 		gdt[i] = descriptor;
 		block_group_pos += vcb->block_group_size;
 	}
+	return 0;
 }
 
 
@@ -108,3 +122,23 @@ int init_directory(int is_root)
 {
 
 }
+
+/*
+ * Return lba position of first available block or -1
+ */
+int bfs_get_first_block(struct vcb_s* vcb, struct block_group_desc* gdt) 
+{
+	
+	for (int i = 0; i < vcb->block_group_count; i++) {
+		if (gdt[i].free_blocks_count > 0) {
+
+			uint8_t* bitmap = malloc(vcb->block_size);
+			LBAread(bitmap, 1, gdt[i].bitmap_location);
+
+			return get_empty_block(bitmap, vcb->block_size);
+		}
+	}
+
+	return -1;
+}
+

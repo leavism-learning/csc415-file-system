@@ -12,6 +12,8 @@
 #include <ctype.h>
 #include <sys/random.h>
 
+#include "bfs_bitmap.h"
+
 #define MAX_FILENAME_LEN 64
 #define NUM_FILES 2048
 #define ROOT_INODE 1;
@@ -69,12 +71,12 @@ struct direntry_s {
 /*
  * Creates a volume with the given name. Returns 0 on success, non-zero on failure
  */
-int vcb_init(struct vcb_s* vcb, char* name, uint64_t num_blocks, uint64_t block_size);
+int bfs_vcb_init(struct vcb_s* vcb, char* name, uint64_t num_blocks, uint64_t block_size);
 
 /*
  * Create the group descriptor table
  */
-void init_gdt(struct vcb_s* vcb, struct block_group_desc* gdt);
+int bfs_gdt_init(struct vcb_s* vcb, struct block_group_desc* gdt);
 
 
 /*
@@ -86,5 +88,14 @@ int create_dentry(struct vcb_s* vcb, struct direntry_s* dentry, char* name, int 
  * Generate a random UUID. Returns 0 on success, non-zero on failure
  */
 void bfs_generate_uuid(uint8_t* uuid);
+
+
+/*
+ * Get value of bit at given position
+ */
+uint8_t get_bit_value(uint8_t byte, uint8_t pos);
+
+int bfs_get_first_block(struct vcb_s* vcb, struct block_group_desc* gdt);
+
 
 #endif
