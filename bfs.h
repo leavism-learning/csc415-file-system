@@ -4,6 +4,7 @@
 #define BFS_H
 
 #include "mfs.h"
+#include "bfs_helpers.h"
 #include "bfs_bitmap.h"
 
 #define MAX_FILENAME_LEN 64

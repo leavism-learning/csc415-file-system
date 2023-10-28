@@ -81,10 +81,10 @@ struct block_group_desc {
 
 /*
  * Directory Entry stores first-class information about a file
- * 18 bytes size, 
+ * 64 bytes size, 
  */
 struct direntry_s {
-	uint64_t  size;               		// file size LIMIT ~18k petabytes
+	uint64_t  size;               		// file size 
 	uint32_t  location;                   	// file location in memory
 	char      name[MAX_FILENAME_LEN];       // file name
 	uint8_t   file_type;                    // 0 if directory, otherwise file 

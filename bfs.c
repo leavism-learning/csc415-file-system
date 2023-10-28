@@ -16,15 +16,13 @@ int bfs_vcb_init(char* name, uint64_t num_blocks, uint64_t block_size)
 	fs_vcb->block_count  	= num_blocks;
 	fs_vcb->magic 	  	= 0x4465657A;
 	fs_vcb->block_group_size 	= block_size * 8;
+	
 	fs_vcb->block_group_count  = num_blocks / fs_vcb->block_group_size;
 	if (num_blocks % fs_vcb->block_group_size) 
 		fs_vcb->block_group_count++;
 
 	int gdt_bytes = fs_vcb->block_group_count * sizeof(struct block_group_desc);
-	fs_vcb->gdt_size = 1;
-	if (gdt_bytes > fs_vcb->block_size) {
-		fs_vcb->gdt_size += gdt_bytes / block_size;
-	}
+	fs_vcb->gdt_size = bytes_to_blocks(gdt_bytes, block_size);
 
 	if (strlen(name) > 63)
 		return 1;
