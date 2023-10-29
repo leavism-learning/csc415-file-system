@@ -14,62 +14,59 @@
  **************************************************************/
 #include "bfs.h"
 
-/*
- * Creates a volume with the given name. Returns 0 on success, non-zero on
- * failure
- */
 int bfs_vcb_init(char *name, uint64_t num_blocks, uint64_t block_size)
 {
+  // Set parameters for the VCB
   bfs_vcb->block_size = block_size;
   bfs_vcb->block_count = num_blocks;
-  bfs_vcb->magic = 0x4465657A;
+  bfs_vcb->magic = BFS_MAGIC;
   bfs_vcb->block_group_size = block_size * 8;
 
+  // Calculate the number of block groups
   bfs_vcb->block_group_count = num_blocks / bfs_vcb->block_group_size;
   if (num_blocks % bfs_vcb->block_group_size)
     bfs_vcb->block_group_count++;
 
+  // Determine the size of the group descriptor table in blocks
   int gdt_bytes = bfs_vcb->block_group_count * sizeof(struct block_group_desc);
   bfs_vcb->gdt_size = bytes_to_blocks(gdt_bytes, block_size);
 
+  // Determine the size of the group descriptor table in blocks
   if (strlen(name) > 63)
     return 1;
   strcpy(bfs_vcb->volume_name, name);
 
+  // Generate a unique UUID for the VCB
+  // TODO: May not need
   bfs_generate_uuid(bfs_vcb->uuid);
 
   return 0;
 }
 
-/*
- * Populate the group descriptor table
- * Group descriptor table contains block_size / sizeof(block_group_desc)
- * block groups Each block group contains block_size * 8 blocks.
- *
- * uint8_t* gdt: buffer to store gdt data
- */
 int bfs_gdt_init(struct block_group_desc *gdt)
 {
-  // bitmap location is directly after the gdt
+  // Bitmap location is directly after the GDT
   int bitmap_pos = bfs_vcb->gdt_size + 1;
 
+  // Initialize the descriptor and bitmap of each block group
   for (int i = 0; i < bfs_vcb->block_group_count; i++) {
 
-    // create block group descriptor
+    // Initialize the block group descriptor
     struct block_group_desc descriptor;
     descriptor.bitmap_location = bitmap_pos;
     descriptor.free_blocks_count = bfs_vcb->block_group_size - 1;
     descriptor.dirs_count = 0;
 
+    // Allocate memory for the block group bitmap
     uint8_t *bitmap = calloc(bfs_vcb->block_size, 1);
 
-    // set 1st block of group because it contains the bitmap
+    // Mark first block in block group as used for bitmap
     if (block_bit_set(bitmap, 0) != 0) {
       fprintf(stderr, "Error: Unabled to set bit in block\n");
       return 1;
     }
 
-    // write bitmap to disk
+    // Handle writing bitmap to disk
     if (LBAwrite(bitmap, 1, bitmap_pos) != 1) {
       fprintf(stderr, "Error: Unable to LBAwrite bitmap %d to disk\n",
               bitmap_pos);
@@ -78,7 +75,10 @@ int bfs_gdt_init(struct block_group_desc *gdt)
 
     free(bitmap);
 
+    // Store the initialized descriptor in the GDT buffer
     gdt[i] = descriptor;
+
+    // Update the position for the next bitmap
     bitmap_pos += bfs_vcb->block_group_size;
   }
   return 0;

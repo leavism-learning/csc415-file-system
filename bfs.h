@@ -169,23 +169,55 @@ void print_dir_entry(struct bfs_dir_entry *dentry);
  * Functions for initializing the Basic File System.
  **************************************************************/
 
-// Creates a volume with the given name. Returns 0 on success, non-zero on
-// failure
+/**
+ * @brief Initializes the Volume Control Block (VCB) for the Basic File
+ * System (BFS).
+ *
+ * @param name: Name of the volume. Maximum length is 63 characters.
+ * @param num_blocks: Total number of blocks in the BFS volume.
+ * @param block_size: Size of each block in bytes.
+ *
+ * @return 0 on successful initialization, non-zero otherwise.
+ */
 int bfs_vcb_init(char *name, uint64_t num_blocks, uint64_t block_size);
 
-/*
- * Create the group descriptor table
+/**
+ * @brief Initializes the Group Descriptor Table (GDT) for the Basic File
+ * System (BFS).
+ *
+ * This function populates the GDT with block group descriptors. Each
+ * descriptor points to a bitmap that keeps track of free blocks within the
+ * block group. The block group size is inferred from the VCB and each block
+ * group contains block_size * 8 blocks. The bitmap's location for each group
+ * is calculated, the first block of the group (which contains the bitmap)
+ * is marked as used, and the bitmap is written to disk.
+ *
+ * @param gdt: Buffer where the group descriptor data will be stored.
+ *
+ * @return 0 on successful initialization of the GDT, non-zero otherwise.
  */
 int bfs_gdt_init(struct block_group_desc *gdt);
 
-/*
- * Initialize a directory entry. Returns 0 on success, non-zero on failure
+/**
+ * @brief Initializes a BFS directory entry with the provided parameters.
+ *
+ * @param dentry: Pointer to the directory entry to be initialized.
+ * @param name: Name of the directory or file. Should not exceed
+ * `MAX_FILENAME_LEN - 1` characters.
+ * @param size: Size of the directory or file.
+ * @param type: Type of the directory or file (e.g., file, directory).
+ *
+ * @return 0 if the directory entry was successfully initialized, 1 if the
+ * provided name exceeds the maximum allowed length.
  */
 int create_dir_entry(struct bfs_dir_entry *dentry, char *name, int size,
                      int type);
 
-/*
- * Generate a random UUID. Returns 0 on success, non-zero on failure
+/**
+ * @brief Generates a UUID (Universal Unique Identifier).
+ *
+ * @param uuid: Pointer to a buffer that will store the generated UUID.
+ * This buffer should be at least 16 bytes in size.
  */
 void bfs_generate_uuid(uint8_t *uuid);
 
