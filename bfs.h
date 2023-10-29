@@ -8,7 +8,7 @@
  *
  * File: bfs.h
  *
- * Description: Function definition for bfs.
+ * Description: Function definition for the Basic File System (BFS).
  **************************************************************/
 
 #ifndef BFS_H_
@@ -102,8 +102,10 @@ int block_bit_set(uint8_t *block, uint8_t position);
 /**
  * @brief Creates the root directory for the BFS file system.
  *
- * @param buffer: Pointer to a buffer where the directory entries will be stored.
- * @param lba_position: Logical Block Address position where the root directory resides.
+ * @param buffer: Pointer to a buffer where the directory entries will be
+ * stored.
+ * @param lba_position: Logical Block Address position where the root directory
+ * resides.
  *
  * @return Returns 0 on successful creation of the root directory.
  */
@@ -119,30 +121,53 @@ int bfs_init_directory();
  * @brief Creates the `.` current directory for the BFS file system.
  *
  * @param here: Pointer to the `.` current directory that is being created
- * @param lba_position: Logical Block Address position of the `.` current directory.
+ * @param lba_position: Logical Block Address position of the `.` current
+ * directory.
  *
  * @return Returns 0 on successful creation of the current directory.
  */
 void bfs_create_here(struct bfs_dir_entry *here, int lba_position);
 
-/********************************************************************
+/**************************************************************
  * bfs_file.c
- * Functions for creating & modifying BFS files
- */
+ * Functions for creating & modifying BFS files.
+ * // TODO: Not clear what these should be yet. Need more planning.
+ **************************************************************/
 
-/********************************************************************
+int bfs_create_file(uint64_t size);
+
+int bfs_create_extent(void *buffer, int size);
+
+/**************************************************************
  * bfs_helpers.c
- * Helper funcions for Basic File System
- */
+ * Helper funcions for Basic File System.
+ **************************************************************/
 
+/**
+ * @brief Calculate number of blocks required to fit `bytes`.
+ *
+ * This function does ceiling division for `bytes` by `block_size`
+ * such that there are enough blocks to account for any all of
+ * `bytes`.
+ *
+ * @param bytes: The number of bytes that needs to fit in blocks.
+ * @param block_size: The size of a single block in bytes.
+ *
+ * @return Returns the number of blocks required to accommodate the
+ * specified byte count.
+ */
 int bytes_to_blocks(int bytes, int block_size);
-
-void print_dir_entry(struct bfs_dir_entry *bde);
-
-/*******************************************************************
- * bfs_init.c
- * Functions for initializing the bfs system
+/**
+ * @brief Prints the details of a BFS directory entry.
+ *
+ * @param dentry: Pointer to the directory entry to be printed.
  */
+void print_dir_entry(struct bfs_dir_entry *dentry);
+
+/**************************************************************
+ * bfs_init.c
+ * Functions for initializing the Basic File System.
+ **************************************************************/
 
 // Creates a volume with the given name. Returns 0 on success, non-zero on
 // failure
