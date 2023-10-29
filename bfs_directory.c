@@ -8,18 +8,18 @@
  *
  * File: bfs_directory.c
  *
- * Description: Directory functions for BFS
+ * Description: Directory functions for Basic File System (BFS).
  *
  **************************************************************/
 
 #include "bfs_directory.h"
 
-int bfs_create_root(struct bfs_dir_entry* buffer, int lba_pos)
+int bfs_create_root(struct bfs_dir_entry *buffer, int lba_pos)
 {
-	// first, create the root directory. 
+	// first, create the root directory.
 	// then, create the . and .. directory entries
-	
-	// create here (.) 
+
+	// create here (.)
 	struct bfs_dir_entry here;
 	bfs_create_here(&here, lba_pos);
 
@@ -42,7 +42,7 @@ int bfs_init_directory()
 /*
  * Create the . directory
  */
-void bfs_create_here(struct bfs_dir_entry* here, int lba_pos)
+void bfs_create_here(struct bfs_dir_entry *here, int lba_pos)
 {
 	here->size = bfs_vcb->block_size;
 	here->location = lba_pos;
