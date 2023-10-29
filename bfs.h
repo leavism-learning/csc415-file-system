@@ -10,20 +10,65 @@
  *
  * Description: Function definition for bfs.
  **************************************************************/
-#ifndef BFS_H
-#define BFS_H
+#ifndef BFS_H_
+#define BFS_H_
 
 #include "mfs.h"
-#include "fsLow.h"
-#include "bfs_helpers.h"
-#include "bfs_bitmap.h"
-#include "bfs_directory.h"
 
 #define BFS_MAGIC 0x4465657A
 
-/*
- * Creates a volume with the given name. Returns 0 on success, non-zero on failure
+/********************************************************************
+ * bfs_bitmap.c
+ * Functions for working with BFS bitmaps.
  */
+
+int bit_check(uint8_t byte, uint8_t pos);
+
+int bit_set(uint8_t byte, uint8_t pos);
+
+int bit_clear(uint8_t byte, uint8_t pos);
+
+int bit_toggle(uint8_t byte, uint8_t pos);
+
+int get_empty_block(uint8_t *bitmap, int size);
+
+int bfs_get_free_block();
+
+// set vaule of a bit at given position in block
+void block_bit_set(uint8_t *block, uint8_t pos);
+
+/********************************************************************
+ * bfs_directory.c
+ * Function definitions for bfs_directory.
+ */
+
+int bfs_create_root(struct bfs_dir_entry *buffer, int lba_pos);
+
+int bfs_init_directory();
+
+void bfs_create_here(struct bfs_dir_entry *here, int lba_pos);
+
+/********************************************************************
+ * bfs_file.c
+ * Functions for creating & modifying BFS files
+ */
+
+/********************************************************************
+ * bfs_helpers.c
+ * Helper funcions for Basic File System
+ */
+
+int bytes_to_blocks(int bytes, int block_size);
+
+void print_dir_entry(struct bfs_dir_entry *bde);
+
+/*******************************************************************
+ * bfs_init.c
+ * Functions for initializing the bfs system
+ */
+
+// Creates a volume with the given name. Returns 0 on success, non-zero on
+// failure
 int bfs_vcb_init(char *name, uint64_t num_blocks, uint64_t block_size);
 
 /*
@@ -32,24 +77,8 @@ int bfs_vcb_init(char *name, uint64_t num_blocks, uint64_t block_size);
 int bfs_gdt_init(struct block_group_desc *gdt);
 
 /*
- * Initialize a directory entry. Returns 0 on success, non-zero on failure
- */
-int create_dir_entry(struct bfs_dir_entry *dentry, char *name, int size, int type);
-
-/*
- * Generate a random UUID. Returns 0 on success, non-zero on failure
+ * Create a UUID
  */
 void bfs_generate_uuid(uint8_t *uuid);
-
-/*
- * Get value of bit at given position
- */
-uint8_t get_bit_value(uint8_t byte, uint8_t pos);
-
-int bfs_get_free_block();
-
-int is_valid_volname(char *name);
-
-void print_uuid(uint8_t *uuid);
 
 #endif
