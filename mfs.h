@@ -113,7 +113,7 @@ struct bfs_extent {
  */
 struct bfs_dir_entry {
 	uint64_t size;               		// file size in bytes (max 16384 PiB) 
-	bfs_block_t location;              	// lba position of file 
+	bfs_block_t location;              	// lba position of file extents
 	uint8_t  file_type;                   	// 0 if directory, otherwise file 
 	time_t   date_created;                 	// file creation time       
 	time_t   date_modified;                	// last time file was modified

@@ -24,6 +24,7 @@
 #include "fsLow.h"
 #include "mfs.h"
 #include "bfs.h"
+#include "bfs_helpers.h"
 
 struct vcb_s* bfs_vcb;
 struct block_group_desc* bfs_gdt;
@@ -34,6 +35,8 @@ void print_uuid(uint8_t* uuid);
 
 int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 {
+	printf("size is %ld\n", sizeof(struct bfs_dir_entry));
+
 	printf ("Initializing File System with %ld blocks with a block size of %ld\n", 
 			numberOfBlocks, blockSize);
 
@@ -103,11 +106,20 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		}
 
 		// get buffer for root directory
-		struct direntry_s* root_directory = malloc(bfs_vcb->block_size);
-		uint8_t* buffer = malloc(bfs_vcb->block_size);
-		LBAread(buffer, 1, pos);
-		free(buffer);
-		bfs_create_root(pos);
+		struct bfs_dir_entry* root_directory = malloc(bfs_vcb->block_size);
+		if (LBAread(root_directory, 1, pos) != 1) {
+			fprintf(stderr, "Error: Unable to LBAread buffer %d\n", pos);
+			free(root_directory);
+			exitFileSystem();
+		}
+		bfs_create_root(root_directory, pos);
+		if (LBAwrite(root_directory, 1, pos) != 1) {
+			fprintf(stderr, "Error: Unable to LBAwrite buffer %d\n", pos);
+			exitFileSystem();
+		}
+		printf("Wrote root directory to block %d\n", pos);
+		print_dir_entry(&root_directory[0]);
+		print_dir_entry(&root_directory[1]);
 	}
 	return 0;
 }

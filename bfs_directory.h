@@ -1,6 +1,6 @@
 #include "mfs.h"
 
-int bfs_create_root(int lba_pos);
+int bfs_create_root(struct bfs_dir_entry* buffer, int lba_pos);
 
 int bfs_init_directory();
 

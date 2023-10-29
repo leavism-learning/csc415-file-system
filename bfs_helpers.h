@@ -9,4 +9,6 @@
 
 int bytes_to_blocks(int bytes, int block_size);
 
+void print_dir_entry(struct bfs_dir_entry* bde);
+
 #endif
