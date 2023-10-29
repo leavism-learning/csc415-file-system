@@ -8,65 +8,63 @@
  *
  * File: bfs_bitmap.c
  *
- * Description: Provides a set of functions to manipulate and query
+ * Description: Functions to manipulate and query
  * the bitmap of the Basic File System (BFS).
  **************************************************************/
 
 #include "bfs.h"
 
-// returns 0 if bit is unset, 1 if bit is set
-int bit_check(uint8_t byte, uint8_t pos) {
-  return byte & (1 << pos);
-  // return (byte >> pos) & 0x1;
+int bit_check(uint8_t byte, uint8_t position)
+{
+  return byte & (1 << position);
 }
 
-/*
- * Set value of bit at given position.
- *
- */
-int bit_set(uint8_t byte, uint8_t pos) {
-  return byte |= 1 << pos;
-  // return byte | 0x1 << pos;
+uint8_t bit_set(uint8_t byte, uint8_t position)
+{
+  return byte |= (1 << position);
 }
 
-/*
- * Set value of bit at given position in block.
- * Assumes that pos is valid
- */
-void block_bit_set(uint8_t *block, uint8_t pos) {
-  int index = pos % 8;
+int block_bit_set(uint8_t *block, uint8_t position)
+{
+  if (position >= bfs_vcb->block_size || position < 0) {
+    fprintf(stderr, "Error: position is out of bounds.\n");
+    return -1;
+  }
 
-  uint8_t byte = block[pos / 8];
+  int index = position % 8;
+  uint8_t byte = block[position / 8];
   byte = bit_set(byte, index);
 
-  block[pos / 8] = byte;
+  block[position / 8] = byte;
+
+  return 0;
 }
 
-int bit_clear(uint8_t byte, uint8_t pos) { return byte &= ~(1 << pos); }
+uint8_t bit_clear(uint8_t byte, uint8_t position)
+{
+  return byte &= ~(1 << position);
+}
 
-int bit_toggle(uint8_t byte, uint8_t pos) { return byte ^= 1 << pos; }
+uint8_t bit_toggle(uint8_t byte, uint8_t position)
+{
+  return byte ^= 1 << position;
+}
 
-/*
- * Return position of first empty block in bitmap, or -1
- * bitmap: block bitmap
- * size: block size
- */
-int get_empty_block(uint8_t *bitmap, int size) {
-  for (int i = 0; i < size; i++) {
-    for (int j = 0; j < 8; j++) {
-      if (bit_check(bitmap[i], j) == 0) {
-        return (i * 8) + j;
+int get_empty_block(uint8_t *bitmap, int size)
+{
+  for (int byte_index = 0; byte_index < size; byte_index++) {
+    for (int bit_index = 0; bit_index < 8; bit_index++) {
+      if (bit_check(bitmap[byte_index], bit_index) == 0) {
+        return (byte_index * 8) + bit_index;
       }
     }
   }
   return -1;
 }
 
-/*
- * Mark a block as in use. Returns 0 if sucessful, or nonzero on failure
- */
-int bfs_set_block(bfs_block_t block_num) {
-  // find out which block group the block belongs to
+int bfs_set_block(bfs_block_t block_num)
+{
+  // Find which block group the block belongs to
   int block_group = block_num / bfs_vcb->block_group_size;
   uint8_t *bitmap = malloc(bfs_vcb->block_size);
 
@@ -75,9 +73,12 @@ int bfs_set_block(bfs_block_t block_num) {
     return 1;
   }
 
-  // index in block group is is block # - ( group size * group # )
+  // Index in block group is block number - ( group size * group number )
   int block_index = block_num - (bfs_vcb->block_group_size * block_group);
-  block_bit_set(bitmap, block_index);
+  if (block_bit_set(bitmap, block_index) != 0) {
+    fprintf(stderr, "Error: Unabled to set bit in block\n");
+    return 1;
+  }
 
   if (LBAwrite(bitmap, 1, bfs_gdt[block_group].bitmap_location != -1)) {
     fprintf(stderr, "Error: Unable to write to block %ld\n", block_num);
@@ -89,10 +90,8 @@ int bfs_set_block(bfs_block_t block_num) {
   return 0;
 }
 
-/*
- * Return block num of first available block or -1 and mark that block as used
- */
-int bfs_get_free_block() {
+int bfs_get_free_block()
+{
   for (int i = 0; i < bfs_vcb->block_group_count; i++) {
 
     struct block_group_desc block_group = bfs_gdt[i];

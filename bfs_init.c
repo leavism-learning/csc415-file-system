@@ -18,7 +18,8 @@
  * Creates a volume with the given name. Returns 0 on success, non-zero on
  * failure
  */
-int bfs_vcb_init(char *name, uint64_t num_blocks, uint64_t block_size) {
+int bfs_vcb_init(char *name, uint64_t num_blocks, uint64_t block_size)
+{
   bfs_vcb->block_size = block_size;
   bfs_vcb->block_count = num_blocks;
   bfs_vcb->magic = 0x4465657A;
@@ -42,12 +43,13 @@ int bfs_vcb_init(char *name, uint64_t num_blocks, uint64_t block_size) {
 
 /*
  * Populate the group descriptor table
- * Group descriptor table contains block_size / sizeof(block_group_desc) block
- * groups Each block group contains block_size * 8 blocks.
+ * Group descriptor table contains block_size / sizeof(block_group_desc)
+ * block groups Each block group contains block_size * 8 blocks.
  *
  * uint8_t* gdt: buffer to store gdt data
  */
-int bfs_gdt_init(struct block_group_desc *gdt) {
+int bfs_gdt_init(struct block_group_desc *gdt)
+{
   // bitmap location is directly after the gdt
   int bitmap_pos = bfs_vcb->gdt_size + 1;
 
@@ -62,7 +64,10 @@ int bfs_gdt_init(struct block_group_desc *gdt) {
     uint8_t *bitmap = calloc(bfs_vcb->block_size, 1);
 
     // set 1st block of group because it contains the bitmap
-    block_bit_set(bitmap, 0);
+    if (block_bit_set(bitmap, 0) != 0) {
+      fprintf(stderr, "Error: Unabled to set bit in block\n");
+      return 1;
+    }
 
     // write bitmap to disk
     if (LBAwrite(bitmap, 1, bitmap_pos) != 1) {
@@ -83,7 +88,8 @@ int bfs_gdt_init(struct block_group_desc *gdt) {
  * Initialize a directory entry.
  */
 int create_dir_entry(struct bfs_dir_entry *dentry, char *name, int size,
-                     int type) {
+                     int type)
+{
   // dentry->vcb = (uint64_t) &vcb;
   dentry->size = size;
   dentry->file_type = type;
@@ -101,7 +107,8 @@ int create_dir_entry(struct bfs_dir_entry *dentry, char *name, int size,
   return 0;
 }
 
-void bfs_generate_uuid(uint8_t *uuid) {
+void bfs_generate_uuid(uint8_t *uuid)
+{
   // fill buffer with random values
   // get_random_bytes(uuid, 16);
   getrandom(uuid, 16, 0);
