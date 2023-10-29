@@ -6,7 +6,7 @@
  * Group Name: Team CDeez
  * Project: Basic File System
  *
- * File: bfs_bitmap.c
+ * File: bfs_helpers.c
  *
  * Description: A set of helper functions when working with the
  * Basic File System (BFS).

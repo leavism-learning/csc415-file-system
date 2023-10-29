@@ -1,3 +1,17 @@
+/**************************************************************
+ * Class:  CSC-415-01 Fall 2021
+ * Names: Griffin Evans, Sukrit Dev Dhawan, Michelle Lang, Giahuy Dang
+ * Student IDs: 922498210, 922432027, 917386319, 922722304
+ * GitHub Name: griffinevans
+ * Group Name: Team CDeez
+ * Project: Basic File System
+ *
+ * File: bfs_file.c
+ *
+ * Description: Functions for working with BFS files. 
+ *
+ **************************************************************/
+
 #include "bfs.h"
 
 /*

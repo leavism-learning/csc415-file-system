@@ -6,7 +6,7 @@
  * Group Name: Team CDeez
  * Project: Basic File System
  *
- * File: bfs_bitmap.c
+ * File: bfs.c
  *
  * Description: Implementation of core functionality for the Basic File
  * System (BFS), including volume initialization, group descriptor
