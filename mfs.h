@@ -45,7 +45,7 @@ typedef uint64_t bfs_block_t;
 #endif
 
 
-#define MAX_FILENAME_LEN 72
+#define MAX_FILENAME_LEN 80
 #define NUM_FILES 2048
 #define ROOT_INODE 1;
 
@@ -109,7 +109,7 @@ struct bfs_extent {
 };
 
 /*
- * Directory Entry stores first-class information about a file
+ * Directory Entry stores first-class information about a file. 128 byte size
  */
 struct bfs_dir_entry {
 	uint64_t size;               		// file size in bytes (max 16384 PiB) 
