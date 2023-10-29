@@ -18,9 +18,9 @@
 
 #define BFS_MAGIC 0x4465657A
 
-/***************************************************************
+/**************************************************************
  * bfs_bitmap.c
- * Functions for working with BFS bitmaps.
+ * Function definition for working with BFS bitmaps.
  **************************************************************/
 
 /**
@@ -94,16 +94,36 @@ int bfs_get_free_block();
  */
 int block_bit_set(uint8_t *block, uint8_t position);
 
-/********************************************************************
+/**************************************************************
  * bfs_directory.c
- * Function definitions for bfs_directory.
+ * Function definitions for working with BFS directory entries.
+ **************************************************************/
+
+/**
+ * @brief Creates the root directory for the BFS file system.
+ *
+ * @param buffer: Pointer to a buffer where the directory entries will be stored.
+ * @param lba_position: Logical Block Address position where the root directory resides.
+ *
+ * @return Returns 0 on successful creation of the root directory.
  */
-
-int bfs_create_root(struct bfs_dir_entry *buffer, int lba_pos);
-
+int bfs_create_root(struct bfs_dir_entry *buffer, int lba_position);
+/**
+ * @brief Creates a directory for the BFS file system.
+ *
+ * @return Returns 0 on successful creation of the directory.
+ */
 int bfs_init_directory();
 
-void bfs_create_here(struct bfs_dir_entry *here, int lba_pos);
+/**
+ * @brief Creates the `.` current directory for the BFS file system.
+ *
+ * @param here: Pointer to the `.` current directory that is being created
+ * @param lba_position: Logical Block Address position of the `.` current directory.
+ *
+ * @return Returns 0 on successful creation of the current directory.
+ */
+void bfs_create_here(struct bfs_dir_entry *here, int lba_position);
 
 /********************************************************************
  * bfs_file.c
