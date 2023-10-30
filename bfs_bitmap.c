@@ -25,14 +25,14 @@ void bit_set(uint8_t* byte, uint8_t position)
   *byte |= (1 << position);
 }
 
-int block_bit_set(uint8_t *block, uint8_t position)
+int block_bit_set(uint8_t *bitmap, uint8_t position)
 {
   if (position >= bfs_vcb->block_size || position < 0) {
     fprintf(stderr, "Error: position is out of bounds.\n");
     return -1;
   }
 
-  bit_set(&block[position / 8], position % 8);
+  bit_set(&bitmap[position / 8], position % 8);
 
   return 0;
 }
@@ -98,13 +98,26 @@ int bfs_get_free_block()
     if (block_group.free_blocks_count > 0) {
 
       uint8_t *bitmap = malloc(bfs_vcb->block_size);
+      if (bitmap == NULL) {
+        perror("malloc");
+        return -1;
+      }
 
-      LBAread(bitmap, 1, block_group.bitmap_location);
+      if(LBAread(bitmap, 1, block_group.bitmap_location) != 1) {
+        free(bitmap);
+        return -1;
+      }
 
       // block index in that block group
       int b_idx = get_avail_bit(bitmap, bfs_vcb->block_size);
       
       // set bit as used
+      block_bit_set(bitmap, b_idx);
+
+      if(LBAwrite(bitmap, 1, block_group.bitmap_location) != 1) {
+        free(bitmap);
+        return -1;
+      }
 
       free(bitmap);
 

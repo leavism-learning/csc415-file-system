@@ -69,15 +69,14 @@ void bit_toggle(uint8_t* byte, uint8_t position);
 int get_avail_bit(uint8_t *bitmap, int size);
 
 /**
- * @brief Fetch the block number of the first available block, mark it as
+ * @brief Return the block number of the first available block & mark it as
  * used, or return -1 if none found.
  *
  * The function traverses through block groups, checks the associated
  * bitmaps, and identifies the first block that is free. Once found, it
  * marks that block as used and returns its block number.
  *
- * @return Block number of the first available block, or -1 if no block is
- * available.
+ * @return Block number of the first available block, or -1 on error  
  * @note Assumes `bfs_vcb` and `bfs_gdt` are valid and initialized.
  */
 int bfs_get_free_block();
