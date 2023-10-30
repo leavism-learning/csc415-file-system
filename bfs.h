@@ -91,6 +91,15 @@ int bfs_get_free_block();
  */
 int block_bit_set(uint8_t *block, uint8_t position);
 
+/**
+ * @brief Return absolute block number from index in block group bitmap
+ *
+ * @param index: location of block in block group
+ * @param block_group: number of block group in GDT
+ * @return logical block array number 
+ */
+int idx_to_bnum(int index, int block_group);
+
 /**************************************************************
  * bfs_directory.c
  * Function definitions for working with BFS directory entries.

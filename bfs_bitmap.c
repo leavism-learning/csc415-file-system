@@ -104,12 +104,18 @@ int bfs_get_free_block()
       // block index in that block group
       int b_idx = get_avail_bit(bitmap, bfs_vcb->block_size);
       
+      // set bit as used
 
       free(bitmap);
 
-      return b_idx + bfs_vcb->gdt_size + 1 + (bfs_vcb->block_group_count * i);
+      return idx_to_bnum(b_idx, i);
     }
   }
 
   return -1;
+}
+
+int idx_to_bnum(int index, int block_group) 
+{
+  return index + bfs_gdt[block_group].bitmap_location;
 }
