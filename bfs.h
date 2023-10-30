@@ -39,37 +39,34 @@ int bit_check(uint8_t byte, uint8_t position);
  *
  * @param byte: The byte in which the bit needs to be set.
  * @param position: Position (0-7) of the bit to be set within the byte.
- * @return The new byte after setting the bit at `position`.
  */
-uint8_t bit_set(uint8_t byte, uint8_t position);
+void bit_set(uint8_t* byte, uint8_t position);
 
 /**
  * @brief Clear the value of a bit (to 0) in `byte` at `position`.
  *
  * @param byte: The byte in which the bit needs to be cleared.
  * @param position: Position (0-7) of the bit to be cleared within the byte.
- * @return The new byte after clearing the bit at `position`.
  */
-uint8_t bit_clear(uint8_t byte, uint8_t position);
+void bit_clear(uint8_t* byte, uint8_t position);
 
 /**
  * @brief Toggle the value of a bit at the given position.
  *
  * @param byte: The byte in which the bit needs to be toggled.
  * @param position: Position (0-7) of the bit to be toggled within the byte.
- * @return The new byte after toggling the bit at `position`.
  */
-uint8_t bit_toggle(uint8_t byte, uint8_t position);
+void bit_toggle(uint8_t* byte, uint8_t position);
 
 /**
- * @brief Gets the first empty block in a bitmap.
+ * @brief Return index of first available bit in bitmap
  *
  * @param bitmap: Pointer to the block bitmap.
  * @param size: Size of the bitmap in bytes.
  * @return The position of the first empty block in the bitmap or -1 if no
  * empty block is found.
  */
-int get_empty_block(uint8_t *bitmap, int size);
+int get_avail_bit(uint8_t *bitmap, int size);
 
 /**
  * @brief Fetch the block number of the first available block, mark it as

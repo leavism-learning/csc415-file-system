@@ -19,9 +19,10 @@ int bit_check(uint8_t byte, uint8_t position)
   return byte & (1 << position);
 }
 
-uint8_t bit_set(uint8_t byte, uint8_t position)
+// set bit in give byte
+void bit_set(uint8_t* byte, uint8_t position)
 {
-  return byte |= (1 << position);
+  *byte |= (1 << position);
 }
 
 int block_bit_set(uint8_t *block, uint8_t position)
@@ -31,26 +32,22 @@ int block_bit_set(uint8_t *block, uint8_t position)
     return -1;
   }
 
-  int index = position % 8;
-  uint8_t byte = block[position / 8];
-  byte = bit_set(byte, index);
-
-  block[position / 8] = byte;
+  bit_set(&block[position / 8], position % 8);
 
   return 0;
 }
 
-uint8_t bit_clear(uint8_t byte, uint8_t position)
+void bit_clear(uint8_t* byte, uint8_t position)
 {
-  return byte &= ~(1 << position);
+  *byte &= ~(1 << position);
 }
 
-uint8_t bit_toggle(uint8_t byte, uint8_t position)
+void bit_toggle(uint8_t* byte, uint8_t position)
 {
-  return byte ^= 1 << position;
+   *byte ^= 1 << position;
 }
 
-int get_empty_block(uint8_t *bitmap, int size)
+int get_avail_bit(uint8_t* bitmap, int size)
 {
   for (int byte_index = 0; byte_index < size; byte_index++) {
     for (int bit_index = 0; bit_index < 8; bit_index++) {
@@ -105,7 +102,8 @@ int bfs_get_free_block()
       LBAread(bitmap, 1, block_group.bitmap_location);
 
       // block index in that block group
-      int b_idx = get_empty_block(bitmap, bfs_vcb->block_size);
+      int b_idx = get_avail_bit(bitmap, bfs_vcb->block_size);
+      
 
       free(bitmap);
 
