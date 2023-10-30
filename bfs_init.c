@@ -37,13 +37,12 @@ int bfs_vcb_init(char *name, uint64_t num_blocks, uint64_t block_size)
   strcpy(bfs_vcb->volume_name, name);
 
   // Generate a unique UUID for the VCB
-  // TODO: May not need
   bfs_generate_uuid(bfs_vcb->uuid);
 
   return 0;
 }
 
-int bfs_gdt_init(struct block_group_desc *gdt)
+int bfs_gdt_init(struct block_group_desc* gdt)
 {
   // Bitmap location is directly after the GDT
   int bitmap_pos = bfs_vcb->gdt_size + 1;

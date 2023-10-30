@@ -91,11 +91,11 @@ int bfs_get_free_block()
 {
   for (int i = 0; i < bfs_vcb->block_group_count; i++) {
 
-    struct block_group_desc block_group = bfs_gdt[i];
+    struct block_group_desc* block_group = &bfs_gdt[i];
 
     // if there are free blocks in the block group, read that block group's
     // bitmap and find the first available block
-    if (block_group.free_blocks_count > 0) {
+    if (block_group->free_blocks_count > 0) {
 
       uint8_t *bitmap = malloc(bfs_vcb->block_size);
       if (bitmap == NULL) {
@@ -103,7 +103,7 @@ int bfs_get_free_block()
         return -1;
       }
 
-      if(LBAread(bitmap, 1, block_group.bitmap_location) != 1) {
+      if(LBAread(bitmap, 1, block_group->bitmap_location) != 1) {
         free(bitmap);
         return -1;
       }
@@ -113,8 +113,9 @@ int bfs_get_free_block()
       
       // set bit as used
       block_bit_set(bitmap, b_idx);
+      block_group->free_blocks_count--;
 
-      if(LBAwrite(bitmap, 1, block_group.bitmap_location) != 1) {
+      if(LBAwrite(bitmap, 1, block_group->bitmap_location) != 1) {
         free(bitmap);
         return -1;
       }
@@ -132,3 +133,5 @@ int idx_to_bnum(int index, int block_group)
 {
   return index + bfs_gdt[block_group].bitmap_location;
 }
+
+//int gdt_free_blocks()

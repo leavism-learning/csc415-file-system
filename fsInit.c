@@ -69,10 +69,8 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize) {
       return 1;
     }
 
-    // write newly created VCB to disk
-    if (LBAwrite(bfs_vcb, 1, 0) != 1) {
-      fprintf(stderr, "Error: Unable to LBAwrite VCB to disk\n");
-      return 1;
+    if (write_current_vcb()) {
+      exitFileSystem();
     }
 
     // allocate one empty block for block group descriptor table
@@ -99,31 +97,35 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize) {
     }
 
     // get buffer for root directory
-    struct bfs_dir_entry *root_directory = malloc(bfs_vcb->block_size);
-    if (LBAread(root_directory, 1, pos) != 1) {
+    bfs_root = malloc(bfs_vcb->block_size);
+    if (LBAread(bfs_root, 1, pos) != 1) {
       fprintf(stderr, "Error: Unable to LBAread buffer %d\n", pos);
-      free(root_directory);
+      free(bfs_root);
       exitFileSystem();
     }
-    bfs_create_root(root_directory, pos);
-    if (LBAwrite(root_directory, 1, pos) != 1) {
-      fprintf(stderr, "Error: Unable to LBAwrite buffer %d\n", pos);
+    bfs_create_root(bfs_root, pos);
+
+    if (write_current_root()) {
       exitFileSystem();
     }
+
     printf("Wrote root directory to block %d\n", pos);
-    print_dir_entry(&root_directory[0]);
-    print_dir_entry(&root_directory[1]);
+    print_dir_entry(&bfs_root[0]);
+    print_dir_entry(&bfs_root[1]);
   }
   return 0;
 }
 
 void exitFileSystem() {
-  // wirte current GDT
-  if (LBAwrite(bfs_gdt, 1, bfs_vcb->gdt_size) != bfs_vcb->gdt_size) {
-    fprintf(stderr, "Error: LBAwrite failed to write GDT\n");
+
+  // try to write current GDT
+  write_current_vcb();
+  write_current_gdt();
+
+  if (bfs_gdt != NULL) {
+    free(bfs_gdt);
+    bfs_gdt = NULL;
   }
-  free(bfs_gdt);
-  bfs_gdt = NULL;
 
   // write current VCB
   if (LBAwrite(bfs_vcb, 0, 1 != 1)) {

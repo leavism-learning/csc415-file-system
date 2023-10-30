@@ -169,6 +169,12 @@ int bytes_to_blocks(int bytes, int block_size);
  */
 void print_dir_entry(struct bfs_dir_entry *dentry);
 
+int write_current_vcb();
+
+int write_current_gdt();
+
+int write_current_root();
+
 /**************************************************************
  * bfs_init.c
  * Functions for initializing the Basic File System.
