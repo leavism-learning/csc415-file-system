@@ -91,25 +91,25 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize) {
     }
 
     // initialize root directory
-    int pos = bfs_get_free_block();
-    if (pos == -1) {
+    bfs_vcb->root_loc = bfs_get_free_block();
+    if (bfs_vcb->root_loc == -1) {
       fprintf(stderr, "Error: Unable to get free block for root directory\n");
     }
 
     // get buffer for root directory
     bfs_root = malloc(bfs_vcb->block_size);
-    if (LBAread(bfs_root, 1, pos) != 1) {
-      fprintf(stderr, "Error: Unable to LBAread buffer %d\n", pos);
+    if (LBAread(bfs_root, 1, bfs_vcb->root_loc) != 1) {
+      fprintf(stderr, "Error: Unable to LBAread buffer %ld\n", bfs_vcb->root_loc);
       free(bfs_root);
       exitFileSystem();
     }
-    bfs_create_root(bfs_root, pos);
+    bfs_create_root(bfs_root, bfs_vcb->root_loc);
 
     if (write_current_root()) {
       exitFileSystem();
     }
 
-    printf("Wrote root directory to block %d\n", pos);
+    printf("Wrote root directory to block %ld\n", bfs_vcb->root_loc);
     print_dir_entry(&bfs_root[0]);
     print_dir_entry(&bfs_root[1]);
   }
