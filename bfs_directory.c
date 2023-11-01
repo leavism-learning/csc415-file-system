@@ -14,9 +14,36 @@
 
 #include "bfs.h"
 
-int bfs_create_directory(int pos, int parent)
+/*
+* Create a directory at the specified position
+*/
+int bfs_create_directory(bfs_block_t pos, bfs_block_t parent)
 {
+	struct bfs_dir_entry* buffer = malloc(sizeof(bfs_vcb->block_size));
+	if (buffer == NULL) {
+		perror("malloc in bfs_create_directory");
+		return 1;
+	}
 
+	if (LBAread(buffer, 1, pos) != 1) {
+		fprintf(stderr, "Unable to LBAread pos %ld in bfs_create_dir\n", pos);
+		return 1;
+	}
+	
+	// create . and .. directory entries
+	struct bfs_dir_entry here;
+	bfs_create_file(&here, ".", bfs_vcb->block_size, pos, 0);
+	struct bfs_dir_entry parend_dir;
+	bfs_create_file(&parend_dir, "..", bfs_vcb->block_size, pos, 0);
+
+	buffer[0] = here;
+	buffer[1] = parend_dir;
+
+	if (LBAwrite(buffer, 1, pos) != 1) {
+		fprintf(stderr, "Unable to LBAwrite pos %ld in bfs_create_dir\n", pos);
+	}
+
+	return 0;
 }
 
 // TODO: Possibly refactor with bfs_init_directory() so we don't

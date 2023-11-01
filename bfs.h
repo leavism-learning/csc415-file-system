@@ -105,6 +105,12 @@ int idx_to_bnum(int index, int block_group);
  **************************************************************/
 
 /**
+ *
+ *
+ */
+int bfs_create_directory(bfs_block_t pos, bfs_block_t parent);
+
+/**
  * @brief Creates the root directory for the BFS file system.
  *
  * @param buffer: Pointer to a buffer where the directory entries will be
@@ -139,7 +145,7 @@ void bfs_create_here(struct bfs_dir_entry *here, int lba_position);
  * // TODO: Not clear what these should be yet. Need more planning.
  **************************************************************/
 
-int bfs_create_file(uint64_t size);
+int bfs_create_file(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, uint64_t pos, uint8_t type);
 
 int bfs_create_extent(void *buffer, int size);
 

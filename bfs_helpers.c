@@ -16,39 +16,39 @@
 
 int bytes_to_blocks(int bytes, int block_size)
 {
-  return (bytes + block_size - 1) / block_size;
+	return (bytes + block_size - 1) / block_size;
 }
 
 void print_dir_entry(struct bfs_dir_entry *dentry)
 {
-  printf("name: %s  size: %ld  location: %ld  type: %d\n", dentry->name,
-         dentry->size, dentry->location, dentry->file_type);
+	printf("name: %s  size: %ld  location: %ld  type: %d\n", dentry->name,
+		dentry->size, dentry->location, dentry->file_type);
 }
 
 int write_current_vcb()
 {
-  if(LBAwrite(bfs_vcb, 1, 0) != 1) {
-    fprintf(stderr, "Error: Unable to write GDT to disk\n");
-    return 1; 
-  }
-  return 0;
+	if(LBAwrite(bfs_vcb, 1, 0) != 1) {
+		fprintf(stderr, "Error: Unable to write GDT to disk\n");
+		return 1; 
+	}
+	return 0;
 }
 
 int write_current_gdt()
 {
-  if(LBAwrite(bfs_gdt, bfs_vcb->gdt_size, 1) != 1) {
-    fprintf(stderr, "Error: Unable to write GDT to disk\n");
-    return 1;
-  }
-  return 0;
+	if(LBAwrite(bfs_gdt, bfs_vcb->gdt_size, 1) != 1) {
+		fprintf(stderr, "Error: Unable to write GDT to disk\n");
+		return 1;
+	}
+	return 0;
 }
 
 int write_current_root()
 {
-  printf("Writing root to pos %ld ", bfs_root[0].location);
-  if (LBAwrite(bfs_root, 1, bfs_root[0].location) != 1) {
-    fprintf(stderr, "Error: Unable to write root directory to disk\n");
-    return 1;
-  }
-  return 0;
+	printf("Writing root to pos %ld ", bfs_vcb->root_loc);
+	if (LBAwrite(bfs_root, 1, bfs_vcb->root_loc) != 1) {
+		fprintf(stderr, "Error: Unable to write root directory to disk\n");
+		return 1;
+	}
+	return 0;
 }

@@ -17,20 +17,24 @@
 /*
  * Create a file with given name & size
  */
-int bfs_create_file(uint64_t size)
+int bfs_create_file(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, 
+					uint64_t pos, uint8_t type)
 {
-  struct bfs_dir_entry dentry;
-  // if (create_dir_entry(&dentry,
-  //  block for data
-  //  block for extent
-  //  block for direntry
-  return 0;
+	dir_entry->size = size;
+	dir_entry->location = pos;
+	strcpy(dir_entry->name, name);
+	dir_entry->location = pos;
+	time_t current_time = time(NULL);
+	dir_entry->file_type = 0;
+	dir_entry->date_created = current_time;
+	dir_entry->date_modified = current_time;
+	dir_entry->date_accessed = current_time;
+  	return 0;
 }
 
 /*
  * Given a buffer, create extend table for that buffer
  * WIP: currently only allocated one block for each file
- */
 int bfs_create_extent(void *buffer, int size)
 {
   struct bfs_extent_header header;
@@ -52,3 +56,4 @@ int bfs_create_extent(void *buffer, int size)
 
   return 0;
 }
+*/
