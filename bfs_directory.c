@@ -19,7 +19,7 @@
 */
 int bfs_create_directory(bfs_block_t pos, bfs_block_t parent)
 {
-	struct bfs_dir_entry* buffer = malloc(sizeof(bfs_vcb->block_size));
+	struct bfs_dir_entry* buffer = malloc(bfs_vcb->block_size);
 	if (buffer == NULL) {
 		perror("malloc in bfs_create_directory");
 		return 1;
