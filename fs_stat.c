@@ -5,10 +5,9 @@
 
 
 #include "mfs.h"
+#include "bfs.h"
+#include "fsLow.h"
 
-// Here for now to make sure function works
-// TODO: delete later
-#define B_CHUNK_SIZE 512
 
 // TODO: delete later
 // for reference
@@ -34,12 +33,13 @@ struct fs_stat {
 */
 
 int fs_stat(const char *path, struct fs_stat *buf) {
+  // TODO: test to make sure this works
   struct bfs_dir_entry* dir_entry;
   get_file_from_path(dir_entry, path);
-  buf->st_blksize = B_CHUNK_SIZE;
+  buf->st_blksize = MINBLOCKSIZE;
 	buf->st_accesstime = dir_entry->date_accessed;
 	buf->st_size = dir_entry->size;
 	buf->st_createtime = dir_entry->date_created;
 	buf->st_modtime = dir_entry->date_modified;
-	//for st_blocks -> use new len field
+  buf->st_blocks = bytes_to_blocks(dir_entry->size);
 }
