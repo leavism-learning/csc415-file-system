@@ -40,23 +40,44 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	bfs_vcb = malloc(blockSize);
 
 	// read first block of memory
-	LBAread(bfs_vcb, 1, 0);
+	if (LBAread(bfs_vcb, 1, 0) != 1) {
+		fprintf(stderr, "Unable to LBAread block 0\n");
+		return 1;
+	}
 
 	// if the file system already exists, load it
 	if (bfs_vcb->magic == BFS_MAGIC) {
 
 		fprintf(stderr, "Existing filesystem found with uuid ");
 		print_uuid(bfs_vcb->uuid);
+		
+		bfs_gdt = malloc(bfs_vcb->block_size * bfs_vcb->gdt_len);
+		if (LBAread(bfs_gdt, bfs_vcb->gdt_len, 1) != bfs_vcb->gdt_len) {
+			fprintf(stderr, "Unable to LBAread block 1\n");
+			return 1;
+		}
 
-		/*
+		bfs_cwd = malloc(bfs_vcb->root_len);
+		printf("initializing root at %ld\n", bfs_vcb->root_loc);
+		if (LBAread(bfs_cwd, bfs_vcb->root_len, bfs_vcb->root_loc) != bfs_vcb->root_len) {
+			fprintf(stderr, "Error: Unable to LBAread buffer %ld\n", bfs_vcb->root_loc);
+			free(bfs_cwd);
+			bfs_cwd = NULL;
+			exitFileSystem();
+		}
+
+		bfs_path = "/";
+	} 
+
+	/*
 	 * if the file system does not exist, create it
 	 * broadly there are 3 steps here:
 	 * first, create the vcb, which is always the 0th block
 	 * next, create the gdt, which always starts at the 1st block, and is
 	 * usually one block but can be larger if necessary. finally, create the
 	 * directory array, which starts after the gdt, and is arbitrarily long
-	*/
-	} else {
+	 */
+	else {
 
 		// for now, volume name is hardcoded
 		char *volume_name = "NewVolume";
@@ -75,7 +96,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 			exitFileSystem();
 		}
 
-		// allocate one empty block for block group descriptor table
+		// allocate empty blocks for block group descriptor table
 		bfs_gdt = calloc(bfs_vcb->block_size, bfs_vcb->gdt_len);
 		if (bfs_gdt_init(bfs_gdt)) {
 			fprintf(stderr, "Error: Unable to initialize GDT\n");
@@ -95,6 +116,10 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		// initialize root directory with size 1
 		bfs_vcb->root_loc = bfs_get_free_block();
 		bfs_vcb->root_len = 1;
+
+		if (write_current_vcb()) {
+			exitFileSystem();
+		}
 
 		if (bfs_vcb->root_loc == -1) {
 			fprintf(stderr, "Error: Unable to get free block for root directory\n");
@@ -116,7 +141,6 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		}
 
 		bfs_path = "/";
-
 	}
 
 	return 0;
