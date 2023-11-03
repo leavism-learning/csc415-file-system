@@ -68,20 +68,16 @@ char* fs_getcwd(char* pathname, size_t size)
 // linux chdir
 int fs_setcwd(char* pathname)
 {
-	struct bfs_dir_entry* file;
-	if (!get_file_from_path(file, pathname)) {
+	struct bfs_dir_entry file;
+	if (!get_file_from_path(&file, pathname)) {
 		return 1;
 	}
 
-	bfs_cwd = realloc(bfs_cwd, bfs_vcb->block_size);
-
-	if (strcmp(pathname, "/") == 0) {
-		// read root and set cwd
-		bfs_cwd = realloc(bfs_cwd, bfs_vcb->root_len);
-		if (LBAread(bfs_cwd, bfs_vcb->root_len, bfs_vcb->root_loc) != 1) {
-			fprintf(stderr, "LBAread failed in fs_getwcd");
-			return 1;
-		}
+	int b = bytes_to_blocks(file.size);
+	bfs_cwd = realloc(bfs_cwd, b);
+	if (LBAread(bfs_cwd, file.location, bytes_to_blocks(file.size)) != b) {
+		fprintf(stderr, "LBAread failed in fs_getcwd\n");
+		return 1;
 	}
 
 	return 0;
@@ -90,21 +86,21 @@ int fs_setcwd(char* pathname)
 // return 1 if file, 0 otherwise
 int fs_isFile(char* filename) 
 {
-	struct bfs_dir_entry* file;
-	if (!get_file_from_path(file, filename)) {
+	struct bfs_dir_entry file;
+	if (!get_file_from_path(&file, filename)) {
 		return 0;
 	}
-	return file->file_type;
+	return file.file_type;
 }
 
 // return 1 if directory, 0 otherwise
 int fs_isDir(char* pathname)
 {
-	struct bfs_dir_entry* file;
-	if (!get_file_from_path(file, pathname)) {
+	struct bfs_dir_entry file;
+	if (!get_file_from_path(&file, pathname)) {
 		return 0;
 	}
-	return !file->file_type;
+	return !file.file_type;
 }
 
 // removes a file
