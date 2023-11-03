@@ -4,7 +4,7 @@
  * Student IDs: 922498210, 922432027, 917386319, 922722304
  * GitHub Name: griffinevans
  * Group Name: Team CDeez
- * Project: Basic File System
+ * Project: Basic File Syttem
  *
  * File: bfs_directory.c
  *
@@ -69,14 +69,16 @@ char* fs_getcwd(char* pathname, size_t size)
 int fs_setcwd(char* pathname)
 {
 	struct bfs_dir_entry file;
-	if (!get_file_from_path(&file, pathname)) {
+	if (get_file_from_path(&file, pathname)) {
+		fprintf(stderr, "Unable to get file from path %s\n", pathname);
 		return 1;
 	}
+	printf("got block %ld\n", file.location);
 
 	int b = bytes_to_blocks(file.size);
-	bfs_cwd = realloc(bfs_cwd, b);
-	if (LBAread(bfs_cwd, file.location, bytes_to_blocks(file.size)) != b) {
-		fprintf(stderr, "LBAread failed in fs_getcwd\n");
+	bfs_cwd = realloc(bfs_cwd, b * bfs_vcb->block_size);
+	if (LBAread(bfs_cwd, b, file.location) != b) {
+		fprintf(stderr, "LBAread failed at %ld in fs_setcwd\n", file.location);
 		return 1;
 	}
 
@@ -110,17 +112,17 @@ int fs_delete(char *filename)
 }
 
 // return directory entry from file path
-// TODO implement relative paths
 int get_file_from_path(struct bfs_dir_entry* target, char* path)
 {
+	char* filepath = strdup(path);
 	struct bfs_dir_entry* current_dir;
+	printf("reading from positon %ld\n", bfs_vcb->root_loc);
 
-	// if first char of path is /, it is absolute, so we should start 
+	// if first char of filepath is /, it is absolute, so we should start 
 	// traversing from root. otherwise ,start traversing from cwd
-	if (path[0] == '/') {
+	if (filepath[0] == '/') {
 		current_dir = malloc(bfs_vcb->block_size * bfs_vcb->root_len);
-		LBAread(current_dir, bfs_vcb->block_size * bfs_vcb->root_len, 
-		  bfs_vcb->root_loc);
+		LBAread(current_dir, bfs_vcb->root_len, bfs_vcb->root_loc);
 	} else {
 		current_dir = malloc(bfs_cwd[0].size);
 		memcpy(current_dir,&bfs_cwd[0],bfs_cwd[0].size);
@@ -128,9 +130,21 @@ int get_file_from_path(struct bfs_dir_entry* target, char* path)
 
 	// get array of strings representing each entry in the filename ex.
 	// "/home/student/" -> { "/", "home", "student"}
-	char* tokens[strlen(path) * sizeof(char*)];
-	char* tok = strtok(path, "/");
+	char* tokens[strlen(filepath) * sizeof(char*)];
+	char* tok = strtok(filepath, "/");
 	int tok_count = 0;
+
+	// if tok == null, it is root
+	if (tok == NULL) {
+		struct bfs_dir_entry* root = malloc(bfs_vcb->block_size * bfs_vcb->root_len);
+		if (LBAread(root, bfs_vcb->root_len, bfs_vcb->root_loc) != bfs_vcb->root_len) {
+			fprintf(stderr, "Unable to LBAread %ld in get_file_from_path\n", bfs_vcb->root_loc);
+			return 1;
+		}
+		memcpy(target, root, sizeof(struct bfs_dir_entry));
+		free(root);
+		return 0;
+	}
 
 	while (tok != NULL) {
 		tokens[tok_count++] = tok;
@@ -149,7 +163,7 @@ int get_file_from_path(struct bfs_dir_entry* target, char* path)
 
 		if (LBAread(current_dir, bytes_to_blocks(target_dir.size), 
 			  target_dir.location)) {
-			fprintf(stderr, "LBAread error in get_file_from_path\n");
+			fprintf(stderr, "LBAread error in get_file_from_filepath\n");
 			return 1;
 		}
 	}
@@ -173,7 +187,7 @@ int find_file(char* filename, struct bfs_dir_entry* directory)
 	// number of files in given directory
 	int num_files = directory->size / sizeof(struct bfs_dir_entry);
 	// look for files except . and ..
-	for (int i = 2; i < num_files; i++) {
+	for (int i = 0; i < num_files; i++) {
 		if (strcmp(filename, directory[i].name) == 0) {
 			return i;
 		}

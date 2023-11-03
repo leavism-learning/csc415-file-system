@@ -53,4 +53,5 @@ dkms.conf
 
 SampleVolume
 fsshell
+fsshell.c
 *.sh
