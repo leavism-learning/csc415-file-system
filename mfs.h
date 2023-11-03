@@ -56,16 +56,16 @@ typedef uint64_t bfs_block_t;
  * parameters of the system.
  */
 struct vcb_s {
-	uint32_t block_size;		// block size
+	uint32_t block_size;		// block size in bytes
 	uint64_t block_count;		// number of blocks
 	char volume_name[64];		// volume name
 	uint8_t uuid[16];			// volume signature
 	uint32_t magic;				// magic signature
 	uint32_t block_group_size;	// number of blocks per block group
 	uint32_t block_group_count; // number of block groups
-	uint32_t gdt_size;			// size (in blocks) for group descriptor table
+	uint32_t gdt_len;			// size (in blocks) for group descriptor table
 	bfs_block_t root_loc;		// location of root directory
-	uint32_t root_size;			// size of root directory
+	uint32_t root_len;			// size (in blocks) of root directory
 };
 
 /*

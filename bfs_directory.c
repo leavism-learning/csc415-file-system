@@ -14,6 +14,7 @@
 
 #include "bfs.h"
 #include "mfs.h"
+#include <stdlib.h>
 
 /*
 * Create a directory at the specified position
@@ -67,10 +68,17 @@ char* fs_getcwd(char* pathname, size_t size)
 // linux chdir
 int fs_setcwd(char* pathname)
 {
+	struct bfs_dir_entry* file;
+	if (!get_file_from_path(file, pathname)) {
+		return 1;
+	}
+
+	bfs_cwd = realloc(bfs_cwd, bfs_vcb->block_size);
+
 	if (strcmp(pathname, "/") == 0) {
 		// read root and set cwd
-		bfs_cwd = realloc(bfs_cwd, bfs_vcb->block_size * bfs_vcb->root_size);
-		if (LBAread(bfs_cwd, bfs_vcb->root_size, bfs_vcb->root_loc) != 1) {
+		bfs_cwd = realloc(bfs_cwd, bfs_vcb->root_len);
+		if (LBAread(bfs_cwd, bfs_vcb->root_len, bfs_vcb->root_loc) != 1) {
 			fprintf(stderr, "LBAread failed in fs_getwcd");
 			return 1;
 		}
@@ -80,15 +88,23 @@ int fs_setcwd(char* pathname)
 }
 
 // return 1 if file, 0 otherwise
-int fs_isFile(char *filename) 
+int fs_isFile(char* filename) 
 {
-	return 0;
+	struct bfs_dir_entry* file;
+	if (!get_file_from_path(file, filename)) {
+		return 0;
+	}
+	return file->file_type;
 }
 
 // return 1 if directory, 0 otherwise
-int fs_isDir(char *pathname)
+int fs_isDir(char* pathname)
 {
-	return 0;
+	struct bfs_dir_entry* file;
+	if (!get_file_from_path(file, pathname)) {
+		return 0;
+	}
+	return !file->file_type;
 }
 
 // removes a file
@@ -106,8 +122,8 @@ int get_file_from_path(struct bfs_dir_entry* target, char* path)
 	// if first char of path is /, it is absolute, so we should start 
 	// traversing from root. otherwise ,start traversing from cwd
 	if (path[0] == '/') {
-		current_dir = malloc(bfs_vcb->block_size * bfs_vcb->root_size);
-		LBAread(current_dir, bfs_vcb->block_size * bfs_vcb->root_size, 
+		current_dir = malloc(bfs_vcb->block_size * bfs_vcb->root_len);
+		LBAread(current_dir, bfs_vcb->block_size * bfs_vcb->root_len, 
 		  bfs_vcb->root_loc);
 	} else {
 		current_dir = malloc(bfs_cwd[0].size);

@@ -36,7 +36,7 @@ int write_current_vcb()
 
 int write_current_gdt()
 {
-	if(LBAwrite(bfs_gdt, bfs_vcb->gdt_size, 1) != 1) {
+	if(LBAwrite(bfs_gdt, bfs_vcb->gdt_len, 1) != 1) {
 		fprintf(stderr, "Error: Unable to write GDT to disk\n");
 		return 1;
 	}

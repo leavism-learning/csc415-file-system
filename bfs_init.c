@@ -29,7 +29,7 @@ int bfs_vcb_init(char *name, uint64_t num_blocks, uint64_t block_size)
 
   // Determine the size of the group descriptor table in blocks
   int gdt_bytes = bfs_vcb->block_group_count * sizeof(struct block_group_desc);
-  bfs_vcb->gdt_size = bytes_to_blocks(gdt_bytes);
+  bfs_vcb->gdt_len = bytes_to_blocks(gdt_bytes);
 
   // Determine the size of the group descriptor table in blocks
   if (strlen(name) > 63)
@@ -45,7 +45,7 @@ int bfs_vcb_init(char *name, uint64_t num_blocks, uint64_t block_size)
 int bfs_gdt_init(struct block_group_desc* gdt)
 {
   // Bitmap location is directly after the GDT
-  int bitmap_pos = bfs_vcb->gdt_size + 1;
+  int bitmap_pos = bfs_vcb->gdt_len + 1;
 
   // Initialize the descriptor and bitmap of each block group
   for (int i = 0; i < bfs_vcb->block_group_count; i++) {

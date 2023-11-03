@@ -76,7 +76,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		}
 
 		// allocate one empty block for block group descriptor table
-		bfs_gdt = calloc(bfs_vcb->block_size, bfs_vcb->gdt_size);
+		bfs_gdt = calloc(bfs_vcb->block_size, bfs_vcb->gdt_len);
 		if (bfs_gdt_init(bfs_gdt)) {
 			fprintf(stderr, "Error: Unable to initialize GDT\n");
 			return 1;
@@ -87,14 +87,14 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		struct block_group_desc first_entry = bfs_gdt[0];
 		printf("position: %ld  free blocks count: %d\n",
 		 first_entry.bitmap_location, first_entry.free_blocks_count);
-		if (LBAwrite(bfs_gdt, bfs_vcb->gdt_size, 1) != 1) {
+		if (LBAwrite(bfs_gdt, bfs_vcb->gdt_len, 1) != 1) {
 			fprintf(stderr, "Error: Unable to LBAwrite GDT to disk\n");
 			return 1;
 		}
 
 		// initialize root directory with size 1
 		bfs_vcb->root_loc = bfs_get_free_block();
-		bfs_vcb->root_size = 1;
+		bfs_vcb->root_len = 1;
 
 		if (bfs_vcb->root_loc == -1) {
 			fprintf(stderr, "Error: Unable to get free block for root directory\n");
@@ -114,6 +114,8 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 			bfs_cwd = NULL;
 			exitFileSystem();
 		}
+
+		bfs_path = "/";
 
 	}
 

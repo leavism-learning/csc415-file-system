@@ -139,6 +139,8 @@ int bfs_init_directory();
  */
 void bfs_create_here(struct bfs_dir_entry *here, int lba_position);
 
+int get_file_from_path(struct bfs_dir_entry* target, char* path);
+
 int find_file(char* filename, struct bfs_dir_entry* directory);
 
 /**************************************************************
