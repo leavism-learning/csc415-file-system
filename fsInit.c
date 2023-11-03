@@ -57,7 +57,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 			return 1;
 		}
 
-		bfs_cwd = malloc(bfs_vcb->root_len);
+		bfs_cwd = malloc(bfs_vcb->block_size * bfs_vcb->root_len);
 		printf("initializing root at %ld\n", bfs_vcb->root_loc);
 		if (LBAread(bfs_cwd, bfs_vcb->root_len, bfs_vcb->root_loc) != bfs_vcb->root_len) {
 			fprintf(stderr, "Error: Unable to LBAread buffer %ld\n", bfs_vcb->root_loc);
@@ -65,6 +65,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 			bfs_cwd = NULL;
 			exitFileSystem();
 		}
+		printf("after\n");
 
 		bfs_path = "/";
 	} 
