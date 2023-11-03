@@ -139,6 +139,8 @@ int bfs_init_directory();
  */
 void bfs_create_here(struct bfs_dir_entry *here, int lba_position);
 
+int find_file(char* filename, struct bfs_dir_entry* directory);
+
 /**************************************************************
  * bfs_file.c
  * Functions for creating & modifying BFS files.
@@ -162,12 +164,11 @@ int bfs_create_extent(void *buffer, int size);
  * `bytes`.
  *
  * @param bytes: The number of bytes that needs to fit in blocks.
- * @param block_size: The size of a single block in bytes.
  *
  * @return Returns the number of blocks required to accommodate the
  * specified byte count.
  */
-int bytes_to_blocks(int bytes, int block_size);
+int bytes_to_blocks(int bytes);
 /**
  * @brief Prints the details of a BFS directory entry.
  *
@@ -178,8 +179,6 @@ void print_dir_entry(struct bfs_dir_entry *dentry);
 int write_current_vcb();
 
 int write_current_gdt();
-
-int write_current_root();
 
 /**************************************************************
  * bfs_init.c

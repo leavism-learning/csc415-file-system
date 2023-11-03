@@ -14,9 +14,9 @@
 
 #include "bfs.h"
 
-int bytes_to_blocks(int bytes, int block_size)
+int bytes_to_blocks(int bytes)
 {
-	return (bytes + block_size - 1) / block_size;
+	return (bytes + bfs_vcb->block_size - 1) / bfs_vcb->block_size;
 }
 
 void print_dir_entry(struct bfs_dir_entry *dentry)
@@ -38,16 +38,6 @@ int write_current_gdt()
 {
 	if(LBAwrite(bfs_gdt, bfs_vcb->gdt_size, 1) != 1) {
 		fprintf(stderr, "Error: Unable to write GDT to disk\n");
-		return 1;
-	}
-	return 0;
-}
-
-int write_current_root()
-{
-	printf("Writing root to pos %ld ", bfs_vcb->root_loc);
-	if (LBAwrite(bfs_root, 1, bfs_vcb->root_loc) != 1) {
-		fprintf(stderr, "Error: Unable to write root directory to disk\n");
 		return 1;
 	}
 	return 0;

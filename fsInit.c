@@ -24,7 +24,8 @@
 
 struct vcb_s* bfs_vcb;
 struct block_group_desc* bfs_gdt;
-struct bfs_dir_entry* bfs_root;
+struct bfs_dir_entry* bfs_cwd;
+char* bfs_path;
 
 int is_valid_volname(char *name);
 void print_uuid(uint8_t *uuid);
@@ -91,8 +92,10 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 			return 1;
 		}
 
-		// initialize root directory
+		// initialize root directory with size 1
 		bfs_vcb->root_loc = bfs_get_free_block();
+		bfs_vcb->root_size = 1;
+
 		if (bfs_vcb->root_loc == -1) {
 			fprintf(stderr, "Error: Unable to get free block for root directory\n");
 		}
@@ -102,15 +105,16 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 			exitFileSystem();
 		}
 
-
-		// get buffer for root directory
-		bfs_root = malloc(bfs_vcb->block_size);
-		if (LBAread(bfs_root, 1, bfs_vcb->root_loc) != 1) {
-			fprintf(stderr, "Error: Unable to LBAread buffer %ld\n", bfs_vcb->root_loc);
-			free(bfs_root);
+		// read the newly created root directory into bfs_cwd
+		bfs_cwd = malloc(bfs_vcb->block_size);
+		if (LBAread(bfs_cwd, 1, bfs_vcb->root_loc) != 1) {
+			fprintf(stderr, "Error: Unable to LBAread buffer %ld\n", 
+		   		bfs_vcb->root_loc);
+			free(bfs_cwd);
+			bfs_cwd = NULL;
 			exitFileSystem();
 		}
-		bfs_create_root(bfs_root, bfs_vcb->root_loc);
+
 	}
 
 	return 0;
@@ -118,23 +122,24 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 
 void exitFileSystem() 
 {
-
-	// try to write current GDT
+	// try to write current GDT and VCB before exiting
 	write_current_vcb();
 	write_current_gdt();
+
+	if (bfs_cwd != NULL) {
+		free(bfs_cwd);
+		bfs_cwd = NULL;
+	}
 
 	if (bfs_gdt != NULL) {
 		free(bfs_gdt);
 		bfs_gdt = NULL;
 	}
 
-	// write current VCB
-	if (LBAwrite(bfs_vcb, 0, 1 != 1)) {
-		fprintf(stderr, "LBAwrite failed to write bfs_vcb\n");
+	if (bfs_vcb != NULL) {
+		free(bfs_vcb);
+		bfs_vcb = NULL;
 	}
-
-	free(bfs_vcb);
-	bfs_vcb = NULL;
 
 	printf("System exiting\n");
 }

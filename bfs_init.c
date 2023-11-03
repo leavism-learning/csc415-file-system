@@ -29,7 +29,7 @@ int bfs_vcb_init(char *name, uint64_t num_blocks, uint64_t block_size)
 
   // Determine the size of the group descriptor table in blocks
   int gdt_bytes = bfs_vcb->block_group_count * sizeof(struct block_group_desc);
-  bfs_vcb->gdt_size = bytes_to_blocks(gdt_bytes, block_size);
+  bfs_vcb->gdt_size = bytes_to_blocks(gdt_bytes);
 
   // Determine the size of the group descriptor table in blocks
   if (strlen(name) > 63)
