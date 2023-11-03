@@ -149,6 +149,7 @@ struct fs_diriteminfo {
 typedef struct {
 	/*****TO DO:  Fill in this structure with what your open/read directory needs
 	 * *****/
+  unsigned int totalEntries;
 	unsigned short d_reclen; /* length of this record */
 	unsigned short
 	dirEntryPosition; /* which directory entry position, like file pos */
