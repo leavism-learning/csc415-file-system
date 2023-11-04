@@ -56,23 +56,23 @@ typedef uint64_t bfs_block_t;
  * parameters of the system.
  */
 struct vcb_s {
-	uint32_t block_size;		// block size in bytes
-	uint64_t block_count;		// number of blocks
-	char volume_name[64];		// volume name
-	uint8_t uuid[16];			// volume signature
-	uint32_t magic;				// magic signature
-	uint32_t block_group_size;	// number of blocks per block group
+	uint32_t block_size;        // block size in bytes
+	uint64_t block_count;       // number of blocks
+	char volume_name[64];       // volume name
+	uint8_t uuid[16];           // volume signature
+	uint32_t magic;             // magic signature
+	uint32_t block_group_size;  // number of blocks per block group
 	uint32_t block_group_count; // number of block groups
-	uint32_t gdt_len;			// size (in blocks) for group descriptor table
-	bfs_block_t root_loc;		// location of root directory
-	uint32_t root_len;			// size (in blocks) of root directory
+	uint32_t gdt_len;           // size (in blocks) for group descriptor table
+	bfs_block_t root_loc;       // location of root directory
+	uint32_t root_len;          // size (in blocks) of root directory
 };
 
 /*
  * block_group_desc: Block Group Descriptor Table
  * The second block of the file system, after the Volume Control Block, is the
- * Block Group Descriptor Table, which contains an array of descriptors for each
- * block group.
+ * Block Group Descriptor Table, which contains an array of descriptors for
+ *each block group.
  *
  * The first block of each block group is that block group's bitmap, where each
  * bit indicates if a block is available (0) or in use (1). Each block group
@@ -95,41 +95,39 @@ struct block_group_desc {
  * An extent refers to a group of contiguous blocks.
  */
 struct bfs_extent_header {
-	uint16_t eh_entries;	// number of entries after the header
-	uint16_t eh_max;		// max number of entries after header
-	uint16_t eh_depth;		// depth of this extent node in the extent tree. 0
-							// = this extent node points to data blocks; 
-							// otherwise, this extent node points to other 
-							// extent nodes.
+	uint16_t eh_entries; // number of entries after the header
+	uint16_t eh_max;     // max number of entries after header
+	uint16_t eh_depth;   // depth of this extent node in the extent tree. 0
+											 // = this extent node points to data blocks;
+											 // otherwise, this extent node points to other
+											 // extent nodes.
 };
 
 struct bfs_extent_idx {
 	// This index node covers file blocks from 'block' onward.
-	uint32_t idx_start;		
-	// block number of the extent node that is the next level lower in the 
-	// tree. The tree node pointed to can be either another internal node or 
-	// a leaf node 
-	bfs_block_t idx_block;	
-
-
+	uint32_t idx_start;
+	// block number of the extent node that is the next level lower in the
+	// tree. The tree node pointed to can be either another internal node or
+	// a leaf node
+	bfs_block_t idx_block;
 };
 
 struct bfs_extent {
 	bfs_block_t ext_block; // first block number that this extent covers
-	uint16_t ext_len;	   // number of blocks covered by extent
+	uint16_t ext_len;      // number of blocks covered by extent
 };
 
 /*
  * Directory Entry stores first-class information about a file. 128 byte size
  */
 struct bfs_dir_entry {
-	uint64_t size;					// file size in bytes (max 16384 PiB)
-	bfs_block_t location;			// lba position of file extents
-	uint8_t file_type;				// 0 if directory, otherwise file
-	time_t date_created;		 	// file creation time
-	time_t date_modified;		 	// last time file was modified
-	time_t date_accessed;		 	// last time file was read
-	char name[MAX_FILENAME_LEN];	// file name
+	uint64_t size;               // file size in bytes (max 16384 PiB)
+	bfs_block_t location;        // lba position of file extents
+	uint8_t file_type;           // 0 if directory, otherwise file
+	time_t date_created;         // file creation time
+	time_t date_modified;        // last time file was modified
+	time_t date_accessed;        // last time file was read
+	char name[MAX_FILENAME_LEN]; // file name
 };
 
 // This structure is returned by fs_readdir to provide the caller with
@@ -142,26 +140,28 @@ struct fs_diriteminfo {
 
 // This is a private structure used only by fs_opendir, fs_readdir, and
 // fs_closedir Think of this like a file descriptor but for a directory - one
-// can only read from a directory.	This structure helps you (the file system)
-// keep track of which directory entry you are currently processing so that
-// everytime the caller calls the function readdir, you give the next entry in
-// the directory
+// can only read from a directory.	This structure helps you (the file
+// system) keep track of which directory entry you are currently processing so
+// that everytime the caller calls the function readdir, you give the next
+// entry in the directory
 typedef struct {
 	/*****TO DO:  Fill in this structure with what your open/read directory needs
 	 * *****/
-  unsigned int totalEntries;
-	unsigned short d_reclen; /* length of this record */
+	unsigned short d_reclen;    /* length of this record */
+	unsigned int di_offset;     // current directory item index
+	uint64_t di_start_position; //
 	unsigned short
-	dirEntryPosition; /* which directory entry position, like file pos */
-	// DE *	directory;			/* Pointer to the loaded directory you want to
-	// iterate */
-	struct fs_diriteminfo *di; /* Pointer to the structure you return from read */
+			dirEntryPosition; /* which directory entry position, like file pos */
+												// DE *	directory;			/* Pointer to the loaded
+												// directory you want to iterate */
+	struct fs_diriteminfo
+			*di; /* Pointer to the structure you return from read */
 } fdDir;
 
-extern struct vcb_s* bfs_vcb;
-extern struct block_group_desc* bfs_gdt;
-extern struct bfs_dir_entry* bfs_cwd;
-extern char* bfs_path;
+extern struct vcb_s *bfs_vcb;
+extern struct block_group_desc *bfs_gdt;
+extern struct bfs_dir_entry *bfs_cwd;
+extern char *bfs_path;
 
 // Key directory functions
 int fs_mkdir(const char *pathname, mode_t mode);
@@ -181,11 +181,11 @@ int fs_delete(char *filename); // removes a file
 
 // This is the strucutre that is filled in from a call to fs_stat
 struct fs_stat {
-	off_t st_size;		  /* total size, in bytes */
+	off_t st_size;        /* total size, in bytes */
 	blksize_t st_blksize; /* blocksize for file system I/O */
 	blkcnt_t st_blocks;   /* number of 512B blocks allocated */
 	time_t st_accesstime; /* time of last access */
-	time_t st_modtime;	  /* time of last modification */
+	time_t st_modtime;    /* time of last modification */
 	time_t st_createtime; /* time of last status change */
 
 	/* add additional attributes here for your file system */

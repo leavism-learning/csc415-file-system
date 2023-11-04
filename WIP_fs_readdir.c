@@ -1,23 +1,28 @@
+#include "bfs.h"
 #include "mfs.h"
 
+// Returns the current directory item info.
+// Subsequent calls retrieves the next directory item info.
 struct fs_diriteminfo *fs_readdir(fdDir *dirp)
 {
   if (dirp == NULL || dirp->di == NULL) {
+    fprintf(stderr, "Error: dirp or dirp.di is null.");
     return NULL;
   }
 
-  // No more entries to read
-  // TODO: Add totalEntries as a field in struct fdDir in mfs.h
-  if (dirp->dirEntryPosition >= dirp->totalEntries) {
-    return NULL;
+  // TODO: Load the directory item array from disk
+  int num_blocks
+      = bytes_to_blocks(sizeof(struct bfs_dir_entry) * bfs_vcb->gdt_len);
+  int num_bytes = num_blocks * bfs_vcb->block_size;
+  struct bfs_dir_entry *di_array = malloc(num_blocks);
+  LBAread(di_array, num_blocks,
+          dirp->di_start_position); // TODO: Michelle is working on fs_opendir.
+                                    // The di_start_position changes based on
+                                    // the CWD, which is changed when we CD (or
+                                    // call fs_opendir)
+
+  while (di_array[dirp->di_offset].) {
   }
-
-  // TODO: But what is reclen field for? When iterating over directory entries
-  // in a filesystem, you need to know how far to move the pointer to get to
-  // the next entry. This is particularly crucial for filesystems where entries
-  // may have variable lengths due to differences in file name lengths or other
-  // metadata.
-
   // Assuming that dirp->di points to an array of fs_diriteminfo
   // structures. Then we should fetch the directory entry corresponding to
   // dirEntryPosition
