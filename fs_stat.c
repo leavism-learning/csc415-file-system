@@ -1,9 +1,3 @@
-// Separate files for holding functions and helper functions of
-// fs_stat for now
-// Integrate into the rest of the code later
-
-
-
 #include "mfs.h"
 #include "bfs.h"
 #include "fsLow.h"
@@ -46,5 +40,4 @@ int fs_stat(const char *path, struct fs_stat *buf) {
 	buf->st_modtime = dir_entry->date_modified;
   buf->st_blocks = bytes_to_blocks(dir_entry->size);
   free(dir_entry);
-  // TODO: check if function also has to print fs_stat struct
 }
