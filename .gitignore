@@ -52,7 +52,4 @@ Mkfile.old
 dkms.conf
 
 SampleVolume
-fsshell
-fsshell.c
 *.sh
-/Hexdump
