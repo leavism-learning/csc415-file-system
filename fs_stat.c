@@ -29,7 +29,9 @@ struct fs_stat {
 int fs_stat(const char *path, struct fs_stat *buf) {
   // TODO: test to make sure this works
   struct bfs_dir_entry* dir_entry = malloc(sizeof(struct bfs_dir_entry));
-  if (!get_file_from_path(dir_entry, path))
+  // TODO: ask about const char
+  const char * copy_path = path; //not sure if this is the right way to deal with this, need to ask
+  if (!get_file_from_path(dir_entry, (char*)copy_path))
   {
     return 1;
   }
