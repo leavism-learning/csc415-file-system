@@ -47,9 +47,16 @@ void bit_toggle(uint8_t* byte, uint8_t position)
 	*byte ^= 1 << position;
 }
 
-int get_avail_bit(uint8_t* bitmap, int size)
+void bitmap_clear_n(uint8_t* bitmap, uint32_t start, uint32_t count)
 {
-	for (int byte_index = 0; byte_index < size; byte_index++) {
+	for (int i = start; i < count; i++) {
+		bit_clear(&bitmap[i / 8], i % 8);
+	}
+}
+
+int bitmap_find_avail_bit(uint8_t* bitmap)
+{
+	for (int byte_index = 0; byte_index < bfs_vcb->block_size; byte_index++) {
 		for (int bit_index = 0; bit_index < 8; bit_index++) {
 			if (bit_check(bitmap[byte_index], bit_index) == 0) {
 				return (byte_index * 8) + bit_index;
@@ -60,7 +67,7 @@ int get_avail_bit(uint8_t* bitmap, int size)
 }
 
 // return location of num_blocks consecutive blocks in given bitmap
-int get_avail_bits(uint8_t* bitmap, int bitmap_size, int num_blocks)
+int bitmap_find_avail_bits(uint8_t* bitmap, int bitmap_size, int num_blocks)
 {
 	int head = -1; // start location of consecutive block list
 	int count = 0; // size count of consecutive block list
@@ -93,6 +100,7 @@ int bfs_set_block(bfs_block_t block_num)
 
 	if (LBAread(bitmap, 1, bfs_gdt[block_group].bitmap_location) != 1) {
 		fprintf(stderr, "Error: Unable to read bitmap for block %ld\n", block_num);
+		free(bitmap);
 		return 1;
 	}
 
@@ -100,16 +108,17 @@ int bfs_set_block(bfs_block_t block_num)
 	int block_index = block_num - (bfs_vcb->block_group_size * block_group);
 	if (block_bit_set(bitmap, block_index) != 0) {
 		fprintf(stderr, "Error: Unabled to set bit in block\n");
+		free(bitmap);
 		return 1;
 	}
 
 	if (LBAwrite(bitmap, 1, bfs_gdt[block_group].bitmap_location != -1)) {
 		fprintf(stderr, "Error: Unable to write to block %ld\n", block_num);
+		free(bitmap);
 		return 1;
 	}
 
 	free(bitmap);
-
 	return 0;
 }
 
@@ -137,7 +146,7 @@ int bfs_get_free_blocks(uint32_t num_blocks)
 			}
 
 			// block index in that block group
-			int b_idx = get_avail_bits(bitmap, bfs_vcb->block_size, num_blocks);
+			int b_idx = bitmap_find_avail_bits(bitmap, bfs_vcb->block_size, num_blocks);
 
 			// set blocks as used
 			for(int i = 0; i < num_blocks; i++) {
@@ -156,6 +165,35 @@ int bfs_get_free_blocks(uint32_t num_blocks)
 			return idx_to_bnum(b_idx, i);
 		}
 	}
+	return -1;
+}
+
+
+// free n consecutive blocks starting from block_num
+int bfs_clear_blocks(bfs_block_t start, uint32_t count)
+{
+	int block_group = start / bfs_vcb->block_group_size;
+	uint8_t* bitmap = malloc(bfs_vcb->block_size);
+
+	if (LBAread(bitmap, 1, block_group) != 1) {
+		fprintf(stderr, "Unable to read %d in bfs_clear_blocks", block_group);
+		free(bitmap);
+		bitmap = NULL;
+		return 1;
+	}
+
+	bitmap_clear_n(bitmap, start, count);
+
+	if (LBAwrite(bitmap, 1, block_group) != 1) {
+		fprintf(stderr, "Unable to write %d in bfs_clear_blocks", block_group);
+		free(bitmap);
+		bitmap = NULL;
+		return 1;
+	}
+
+	free(bitmap);
+	bitmap = NULL;
+	return 0;
 }
 
 int bfs_get_free_block()
@@ -180,7 +218,7 @@ int bfs_get_free_block()
 			}
 
 			// block index in that block group
-			int b_idx = get_avail_bit(bitmap, bfs_vcb->block_size);
+			int b_idx = bitmap_find_avail_bit(bitmap);
 
 			// set bit as used
 			block_bit_set(bitmap, b_idx);

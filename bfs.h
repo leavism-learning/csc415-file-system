@@ -66,7 +66,7 @@ void bit_toggle(uint8_t* byte, uint8_t position);
  * @return The position of the first empty block in the bitmap or -1 if no
  * empty block is found.
  */
-int get_avail_bit(uint8_t *bitmap, int size);
+int bitmap_find_avail_bit(uint8_t* bitmap);
 
 /**
  * @brief Return the block number of the first available block & mark it as
@@ -98,6 +98,10 @@ int block_bit_set(uint8_t *block, uint8_t position);
  * @return logical block array number 
  */
 int idx_to_bnum(int index, int block_group);
+
+int bfs_clear_blocks(bfs_block_t start, uint32_t count);
+
+void bitmap_clear_n(uint8_t* bitmap, uint32_t start, uint32_t count);
 
 /**************************************************************
  * bfs_directory.c
@@ -238,5 +242,11 @@ int create_dir_entry(struct bfs_dir_entry *dentry, char *name, int size,
  * This buffer should be at least 16 bytes in size.
  */
 void bfs_generate_uuid(uint8_t *uuid);
+
+/******************************************************************************
+*
+* fs_delete.c
+*/
+int free_extents(uint8_t* buffer);
 
 #endif

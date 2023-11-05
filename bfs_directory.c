@@ -13,8 +13,6 @@
  **************************************************************/
 
 #include "bfs.h"
-#include "mfs.h"
-#include <stdlib.h>
 
 /*
 * Create a directory at the specified position
@@ -103,12 +101,6 @@ int fs_isDir(char* pathname)
 		return 0;
 	}
 	return !file.file_type;
-}
-
-// removes a file
-int fs_delete(char *filename)
-{
-	return 0;
 }
 
 // return directory entry from file path
