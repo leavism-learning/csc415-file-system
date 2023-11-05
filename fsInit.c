@@ -65,7 +65,6 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 			bfs_cwd = NULL;
 			exitFileSystem();
 		}
-		printf("after\n");
 
 		bfs_path = "/";
 	} 
