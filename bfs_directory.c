@@ -143,6 +143,7 @@ int get_file_from_path(struct bfs_dir_entry* target, char* path)
 		}
 		memcpy(target, root, sizeof(struct bfs_dir_entry));
 		free(root);
+		free(filepath);
 		return 0;
 	}
 
@@ -156,6 +157,9 @@ int get_file_from_path(struct bfs_dir_entry* target, char* path)
 
 		int index = find_file(tokens[i], current_dir);
 		if (index == -1 || current_dir[i].file_type != 0) {
+			// error case
+			fprintf(stderr, "matching file for %s not found", tokens[i]);
+			free(filepath);
 			return 1;
 		}
 		
@@ -164,16 +168,22 @@ int get_file_from_path(struct bfs_dir_entry* target, char* path)
 		if (LBAread(current_dir, bytes_to_blocks(target_dir.size), 
 			  target_dir.location)) {
 			fprintf(stderr, "LBAread error in get_file_from_filepath\n");
+			free(filepath);
 			return 1;
 		}
 	}
 	
 	int i = find_file(tokens[tok_count - 1], current_dir);
 	if (i == -1) {
+		fprintf(stderr, "Unable to find file %s\n", tokens[tok_count - 1]);
+		free(filepath);
 		return 1;
 	}
 
 	memcpy(target, &current_dir[i], sizeof(struct bfs_dir_entry));
+
+	free(filepath);
+	filepath = NULL;
 
 	free(current_dir);
 	current_dir = NULL;
