@@ -15,7 +15,7 @@
 #include "bfs.h"
 
 /*
-* Create a directory at the specified position
+* Create a directory (dir entry array) at the specified position
 */
 int bfs_create_directory(bfs_block_t pos, bfs_block_t parent)
 {

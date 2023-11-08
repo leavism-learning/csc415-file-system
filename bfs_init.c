@@ -86,7 +86,7 @@ int bfs_gdt_init(struct block_group_desc* gdt)
 /*
  * Initialize a directory entry.
  */
-int create_dir_entry(struct bfs_dir_entry *dentry, char *name, int size,
+int create_dir_entry(struct bfs_dir_entry* dentry, char* name, int size,
                      int type)
 {
   // dentry->vcb = (uint64_t) &vcb;
