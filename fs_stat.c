@@ -26,20 +26,20 @@ struct fs_stat {
 */
 
 // return 1 if failed to get file from path
-int fs_stat(const char *path, struct fs_stat *buf) {
-  // TODO: test to make sure this works
-  struct bfs_dir_entry* dir_entry = malloc(sizeof(struct bfs_dir_entry));
-  // TODO: ask about const char
-  const char * copy_path = path; //not sure if this is the right way to deal with this, need to ask
-  if (!get_file_from_path(dir_entry, (char*)copy_path))
-  {
-    return 1;
-  }
-  buf->st_blksize = MINBLOCKSIZE;
-	buf->st_accesstime = dir_entry->date_accessed;
-	buf->st_size = dir_entry->size;
-	buf->st_createtime = dir_entry->date_created;
-	buf->st_modtime = dir_entry->date_modified;
-  buf->st_blocks = bytes_to_blocks(dir_entry->size);
-  free(dir_entry);
+int fs_stat(const char* path, struct fs_stat* buf) 
+{
+	// TODO: test to make sure this works
+	struct bfs_dir_entry dir_entry;
+	// TODO: ask about const char
+	const char* copy_path = path; //not sure if this is the right way to deal with this, need to ask
+	if (!get_file_from_path(&dir_entry, (char*)copy_path))
+	{
+		return 1;
+	}
+	buf->st_blksize = bfs_vcb->block_size;
+	buf->st_accesstime = dir_entry.date_accessed;
+	buf->st_size = dir_entry.size;
+	buf->st_createtime = dir_entry.date_created;
+	buf->st_modtime = dir_entry.date_modified;
+	buf->st_blocks = bytes_to_blocks(dir_entry.size);
 }
