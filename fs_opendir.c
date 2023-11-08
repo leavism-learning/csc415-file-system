@@ -20,8 +20,7 @@
 fdDir* fs_opendir(const char* pathname) 
 {
 	struct bfs_dir_entry* dir_entry;
-	const char* copy_pathname = pathname;
-	if (!get_file_from_path(dir_entry, (char *) copy_pathname)) {
+	if (!get_file_from_path(dir_entry, (char *) pathname)) {
 		fprintf(stderr, "Unable to get file from path: %s\n", pathname);
 		return NULL;
 	}
@@ -31,12 +30,9 @@ fdDir* fs_opendir(const char* pathname)
 		return NULL;
 	}
 	fdDir* dirp = malloc(sizeof(fdDir));
-	memcpy(dirp->di, dir_entry, sizeof(struct bfs_dir_entry)); 
-	dirp->d_reclen = sizeof(struct bfs_dir_entry);
-	dirp->dirEntryPosition = dir_entry->location;
-	// TODO: check with the updated fields in fdDir struct
+	dirp->d_reclen = sizeof(fdDir);
+	dirp->direntryPosition = 0;
+	dirp->directory = dir_entry;
 
-	// free??
-	//free(dir_entry);
 	return dirp;
 }

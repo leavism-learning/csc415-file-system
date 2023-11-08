@@ -10,10 +10,9 @@ struct fs_diriteminfo* fs_readdir(fdDir* dirp)
 	}
 
 	// TODO: Load the directory item array from disk
-	int num_blocks = bytes_to_blocks(sizeof(struct bfs_dir_entry) * bfs_vcb->gdt_len);
-	int num_bytes = num_blocks * bfs_vcb->block_size;
-	struct bfs_dir_entry* di_array = malloc(bytes_to_blocks(size));
+	struct bfs_dir_entry* dir_head = dirp->directory;
 	LBAread(di_array, num_blocks, dirp->di_start_position); // TODO: Michelle is working on fs_opendir.
+	// TODO start here
 	// The di_start_position changes based on
 	// the CWD, which is changed when we CD (or
 	// call fs_opendir)
