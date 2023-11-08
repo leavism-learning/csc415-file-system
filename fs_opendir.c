@@ -17,25 +17,26 @@
 // 	struct fs_diriteminfo *di; /* Pointer to the structure you return from read */
 // } fdDir;
 
-fdDir *fs_opendir(const char *pathname) {
-    struct bfs_dir_entry* dir_entry;
-    const char * copy_pathname = pathname;
-    if(!get_file_from_path(dir_entry, (char*)copy_pathname)) {
+fdDir* fs_opendir(const char* pathname) 
+{
+	struct bfs_dir_entry* dir_entry;
+	const char* copy_pathname = pathname;
+	if (!get_file_from_path(dir_entry, (char *) copy_pathname)) {
 		fprintf(stderr, "Unable to get file from path: %s\n", pathname);
-        return NULL;
-    }
-    // check to make sure path points to directory not file
-    if(dir_entry->file_type != 0) {
+		return NULL;
+	}
+	// check to make sure path points to directory not file
+	if (dir_entry->file_type != 0) {
 		fprintf(stderr, "Not a directory\n");
-        return NULL;
-    }
-    fdDir* dirp = malloc(sizeof(fdDir));
-    memcpy(dirp->di, dir_entry, sizeof(struct bfs_dir_entry)); 
-    dirp->d_reclen = sizeof(sizeof(struct bfs_dir_entry));
-    dirp->dirEntryPosition = dir_entry->location;
-    // TODO: check with the updated fields in fdDir struct
+		return NULL;
+	}
+	fdDir* dirp = malloc(sizeof(fdDir));
+	memcpy(dirp->di, dir_entry, sizeof(struct bfs_dir_entry)); 
+	dirp->d_reclen = sizeof(struct bfs_dir_entry);
+	dirp->dirEntryPosition = dir_entry->location;
+	// TODO: check with the updated fields in fdDir struct
 
-    // free??
-    //free(dir_entry);
-    return dirp;
+	// free??
+	//free(dir_entry);
+	return dirp;
 }

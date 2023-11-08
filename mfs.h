@@ -123,6 +123,7 @@ struct bfs_extent {
  */
 struct bfs_dir_entry {
 	uint64_t size;				 // file size in bytes (max 16384 PiB)
+	uint32_t len;				 // file length in blocks 
 	bfs_block_t location;		 // lba position of file extents
 	uint8_t file_type;			 // 0 if directory, otherwise file
 	time_t date_created;		 // file creation time
@@ -148,7 +149,7 @@ struct fs_diriteminfo {
 typedef struct {
 	// TODO:  Fill in this structure with what your open/read directory needs
 	unsigned short d_reclen;			/* length of this record */
-	unsigned int di_offset;				// current directory item index
+	uint64_t di_offset;					// current directory item index
 	uint64_t di_start_position;			//
 	unsigned short dirEntryPosition;	/* which directory entry position, like file pos */
 	// DE *	directory;					/* Pointer to the loaded directory you want to iterate */
