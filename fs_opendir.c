@@ -24,6 +24,8 @@ fdDir* fs_opendir(const char* pathname)
 		fprintf(stderr, "Unable to get file from path: %s\n", pathname);
 		return NULL;
 	}
+
+	// read extents into buffer
 	// check to make sure path points to directory not file
 	if (dir_entry->file_type != 0) {
 		fprintf(stderr, "Not a directory\n");
