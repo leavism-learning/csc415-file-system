@@ -20,11 +20,10 @@
 int bfs_create_file(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, uint64_t pos, uint8_t type)
 {
 	dir_entry->size = size;
-	dir_entry->location = pos;
 	strcpy(dir_entry->name, name);
 	dir_entry->location = pos;
 	time_t current_time = time(NULL);
-	dir_entry->file_type = 0;
+	dir_entry->file_type = type;
 	dir_entry->date_created = current_time;
 	dir_entry->date_modified = current_time;
 	dir_entry->date_accessed = current_time;
