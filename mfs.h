@@ -14,6 +14,7 @@
  **************************************************************/
 #ifndef _MFS_H
 #define _MFS_H
+#define _XOPEN_SOURCE 700 // For the Ubuntu users for blksize_t
 
 #include <ctype.h>
 #include <dirent.h>
@@ -24,6 +25,7 @@
 #include <string.h>
 #include <sys/random.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -150,7 +152,7 @@ typedef struct {
 	// TODO:  Fill in this structure with what your open/read directory needs
 	unsigned short d_reclen;			/* length of this record */
 	unsigned short dirEntryPosition;	/* which directory entry position, like file pos */
-	bfs_dir_entry*	directory;			/* Pointer to the loaded directory you want to iterate */
+	struct bfs_dir_entry*	directory;			/* Pointer to the loaded directory you want to iterate */
 	struct fs_diriteminfo* di;			/* Pointer to the structure you return from read */
 } fdDir;
 
