@@ -159,6 +159,8 @@ int bfs_create_file(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, 
 
 int bfs_create_extent(void* extent_block, int size);
 
+int bfs_read_extent(void* buffer, bfs_block_t block_num);
+
 /**************************************************************
  * bfs_helpers.c
  * Helper funcions for Basic File System.

@@ -96,3 +96,46 @@ int bfs_create_extent(void* extent_block, int size)
 
 	return 0;
 }
+
+int bfs_read_extent(void* data, bfs_block_t block_num) 
+{
+	struct bfs_extent_header* extent = malloc(bfs_vcb->block_size);
+	if (LBAread(extent, 1, block_num) != 1) {
+		fprintf(stderr, "Unable to LBAread extent at block %ld\n", block_num);
+		return 1;
+	}
+
+	struct bfs_extent_header header = extent[0];
+
+	if (header.eh_depth != 0) {
+		fprintf(stderr, "Error: Extent uses unimplemented indexes\n");
+		return 1;
+	}
+
+	struct bfs_extent* ext_leaves = (struct bfs_extent*) extent;
+
+	// find out how many blocks are needed for extents
+	int data_len = 0;
+	for (int i = 0; i < header.eh_entries; i++) {
+		struct bfs_extent leaf = ext_leaves[i];
+		data_len += leaf.ext_len;
+	}
+
+	if (data == NULL) {
+		data = malloc(data_len * bfs_vcb->block_size);
+	} else {
+		data = realloc(data, data_len * bfs_vcb->block_size);
+	}
+
+	// read data 
+	int pos = 0;
+	for (int i = 0; i < header.eh_entries; i++) {
+		struct bfs_extent leaf = ext_leaves[i];
+		if (LBAread(data + pos, leaf.ext_len, leaf.ext_block) != leaf.ext_len) {
+			fprintf(stderr, "Unable to read data blocks %ld\n", leaf.ext_block);
+		}
+		pos += leaf.ext_len;
+	}
+
+	return 0;
+}
