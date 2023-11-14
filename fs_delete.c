@@ -19,8 +19,8 @@ int free_extents(uint8_t* buffer) {
 			struct bfs_extent_idx idx = ((struct bfs_extent_idx*) buffer)[1];
 			uint8_t* newbuf = malloc(bfs_vcb->block_size);
 
-			if (LBAread(newbuf, 1, idx.idx_block) != 1) {
-				fprintf(stderr, "unable to read extent block %ld\n", idx.idx_block);
+			if (LBAread(newbuf, 1, idx.idx_leaf) != 1) {
+				fprintf(stderr, "unable to read extent block %ld\n", idx.idx_leaf);
 				free(newbuf);
 				return 1;
 			}

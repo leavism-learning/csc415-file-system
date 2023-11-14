@@ -35,7 +35,7 @@ int fs_mkdir(const char *pathname, mode_t mode)
 			token1 = token2;
 		}
 
-		printf("Size of last element: %d			%s\n", strlen(lastElement), lastElement);
+		printf("Size of last element: %ld , %s\n", strlen(lastElement), lastElement);
 
 		parentPath[pathLength - strlen(lastElement)] = '\0';
 		

@@ -99,20 +99,19 @@ struct block_group_desc {
 struct bfs_extent_header {
 	uint32_t eh_entries; // number of entries after the header
 	uint32_t eh_max;	 // max number of entries after header
-	uint16_t eh_depth;	 // depth of this extent node in the extent tree. 0
+	uint64_t eh_depth;	 // depth of this extent node in the extent tree. 0
 						 // = this extent node points to data blocks;
 						 // otherwise, this extent node points to other
 						 // extent nodes.
-	uint16_t unused;
 };
 
 struct bfs_extent_idx {
-	// This index node covers file blocks from 'block' onward.
-	uint64_t idx_start;
+	// This index node's location
+	uint64_t idx_loc;
 	// block number of the extent node that is the next level lower in the
 	// tree. The tree node pointed to can be either another internal node or
 	// a leaf node
-	uint64_t idx_block;
+	uint64_t idx_leaf;
 };
 
 struct bfs_extent {

@@ -33,7 +33,7 @@ fdDir* fs_opendir(const char* pathname)
 	}
 	fdDir* dirp = malloc(sizeof(fdDir));
 	dirp->d_reclen = sizeof(fdDir);
-	dirp->direntryPosition = 0;
+	dirp->dirEntryPosition = 0;
 	dirp->directory = dir_entry;
 
 	return dirp;

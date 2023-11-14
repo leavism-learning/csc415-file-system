@@ -13,6 +13,7 @@
  **************************************************************/
 
 #include "bfs.h"
+#include "mfs.h"
 
 /*
  * Create a file with given name & size
@@ -31,11 +32,16 @@ int bfs_create_file(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, 
 }
 
 /*
- * Given a buffer, create extend table for that buffer
- * WIP: currently only allocated one block for each file
+ * Given a buffer, create extent table for that buffer
  */
-int bfs_create_extent(struct bfs_extent_header* extent_block, int size)
+int bfs_create_extent(void* extent_block, int size)
 {
+	if (extent_block == NULL) {
+		extent_block = malloc(bfs_vcb->block_size);
+	} else {
+		extent_block = realloc(extent_block, bfs_vcb->block_size);
+	}
+
 	// find out how many extents are needed for file
 	int blocks_needed = bytes_to_blocks(size);
 	// try to get one as few extents as possible for num_blocks
@@ -52,50 +58,41 @@ int bfs_create_extent(struct bfs_extent_header* extent_block, int size)
 
 	while (blocks_needed > 0) {
 		int loc = bfs_get_free_blocks(ext_len + is_odd);
-		if (loc != -1) {
-			struct bfs_extent ext;
-			ext.ext_block = loc;
-			ext.ext_len = ext_len + is_odd;
-			extents[num_exts++] = ext;
-			blocks_needed -= ext_len;
-			is_odd = 0;
-		} else {
+		if (loc == -1) {
 			ext_len /= 2;
 			if (ext_len < 1) {
 				return -1;
 			}
 		}
+		else {
+			struct bfs_extent ext;
+			ext.ext_block = loc;
+			ext.ext_len = ext_len + is_odd;
+			ext_leaves[num_exts++] = ext;
+			blocks_needed -= ext_len;
+			is_odd = 0;
+		} 	
 	}
 
-	int exts_per_block = (bfs_vcb->block_size / sizeof(struct bfs_extent)) - 1;
-	extent_block = malloc(bfs_vcb->block_size);
+	// number of leaf or index nodes that can fit in a block
+	// if # of leaf nodes > nodes per block, index nodes are needed
+	int nodes_per_block = bfs_vcb->block_size / sizeof(struct bfs_extent) - 1;
 
-	// all extents fit in one block
-	if (num_exts < exts_per_block) {
-		struct bfs_extent_header header;
-		header.eh_entries = num_exts;
-		header.eh_depth = 1;
-		header.max = exts_per_block;
-
-		// one block for the extent 
-		extent_block = malloc(bfs_vcb->block_size);
-		extent_block[0] = header;
-
-		for (int i = 0; i < num_exts; i++) {
-			extent_block[i + 1] = ext_leaves[i];
-		}
+	if (num_exts > nodes_per_block) {
+		fprintf(stderr, "Error: More than %d extents needed\n", nodes_per_block);
+		return -1;
 	}
 
+	struct bfs_extent_header header;
+	header.eh_depth = 0;
+	header.eh_entries = num_exts;
+	header.eh_max = nodes_per_block;
 
-	if (ext.ext_block == -1) {
-		fprintf(stderr, "Error: No free blocks found\n");
-		return 1;
+	((struct bfs_extent_header*) extent_block)[0] = header;
+
+	for (int i = 0; i < num_exts; i++) {
+		((struct bfs_extent*) extent_block)[i+1] =  ext_leaves[i];
 	}
-	ext.ext_len = 1;
-
-	int index = sizeof(struct bfs_extent_header);
-	memcpy(buffer, (void *)&header, index);
-	memcpy(buffer index, (void *)&ext, sizeof(bfs_extent));
 
 	return 0;
 }

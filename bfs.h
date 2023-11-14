@@ -103,6 +103,8 @@ int bfs_clear_blocks(bfs_block_t start, uint32_t count);
 
 void bitmap_clear_n(uint8_t* bitmap, uint32_t start, uint32_t count);
 
+int bfs_get_free_blocks(uint32_t num_blocks);
+
 /**************************************************************
  * bfs_directory.c
  * Function definitions for working with BFS directory entries.
@@ -155,7 +157,7 @@ int find_file(char* filename, struct bfs_dir_entry* directory);
 
 int bfs_create_file(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, uint64_t pos, uint8_t type);
 
-int bfs_create_extent(void *buffer, int size);
+int bfs_create_extent(void* extent_block, int size);
 
 /**************************************************************
  * bfs_helpers.c
