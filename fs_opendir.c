@@ -1,4 +1,3 @@
-#include "mfs.h"
 #include "bfs.h"
 
 // This is a private structure used only by fs_opendir, fs_readdir, and
@@ -28,13 +27,22 @@ fdDir* fs_opendir(const char* pathname)
 	// read extents into buffer
 	// check to make sure path points to directory not file
 	if (dir_entry->file_type != 0) {
-		fprintf(stderr, "Not a directory\n");
+		fprintf(stderr, "File named %s is not a directory\n", pathname);
 		return NULL;
 	}
+
+	struct bfs_dir_entry* directory_arr = malloc(bfs_vcb->block_size * dir_entry->len);
+
+	// dir entry is file . 
+	if (LBAread(directory_arr, dir_entry->len, dir_entry->location) != dir_entry->len) {
+		fprintf(stderr, "Error reading directory at %ld\n", dir_entry->location);
+		return NULL;
+	}
+
 	fdDir* dirp = malloc(sizeof(fdDir));
 	dirp->d_reclen = sizeof(fdDir);
 	dirp->dirEntryPosition = 0;
-	dirp->directory = dir_entry;
+	dirp->directory = directory_arr;
 
 	return dirp;
 }
