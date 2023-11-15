@@ -33,11 +33,15 @@ int bfs_create_directory(bfs_block_t pos, bfs_block_t parent)
 	// create . and .. directory entries
 	struct bfs_dir_entry here;
 	bfs_create_direntry(&here, ".", bfs_vcb->block_size, pos, 0);
-	struct bfs_dir_entry parend_dir;
-	bfs_create_direntry(&parend_dir, "..", bfs_vcb->block_size, pos, 0);
+	struct bfs_dir_entry parent_dir;
+	bfs_create_direntry(&parent_dir, "..", bfs_vcb->block_size, pos, 0);
+
+	struct bfs_dir_entry nulldir;
+	nulldir.name[0] = '\n';
 
 	buffer[0] = here;
-	buffer[1] = parend_dir;
+	buffer[1] = parent_dir;
+	buffer[2] = nulldir;
 
 	if (LBAwrite(buffer, 1, pos) != 1) {
 		fprintf(stderr, "Unable to LBAwrite pos %ld in bfs_create_dir\n", pos);
@@ -121,6 +125,7 @@ int get_file_from_path(struct bfs_dir_entry* target, char* path)
 			fprintf(stderr, "Unable to LBAread %ld in get_file_from_path\n", bfs_vcb->root_loc);
 			return 1;
 		}
+		// copy first dir entry
 		memcpy(target, root, sizeof(struct bfs_dir_entry));
 		free(root);
 		free(filepath);
@@ -190,27 +195,29 @@ int find_file(char* filename, struct bfs_dir_entry* directory)
 // Subsequent calls retrieves the next directory item info.
 struct fs_diriteminfo* fs_readdir(fdDir* dirp)
 {
-	if (dirp == NULL || dirp->di == NULL) {
-		fprintf(stderr, "Error: dirp or dirp.di is null.");
+	if (dirp == NULL) { 
+		fprintf(stderr, "Error: dirp is null.");
 		return NULL;
 	}
 
+	// TODO bounds check
 	struct bfs_dir_entry diritem = (dirp->directory)[dirp->dirEntryPosition++];
+	if (diritem.name[0] == '\n') {
+		return NULL;
+	}
 
 	// populate  fsdiriteminfo struct
-	struct fs_diriteminfo* info = malloc(sizeof(struct fs_diriteminfo));
-
-	info->d_reclen = sizeof(struct fs_diriteminfo);
-	info->fileType = diritem.file_type;
-	strcpy(info->d_name, diritem.name);
-	return info;
+	dirp->di->d_reclen = sizeof(struct fs_diriteminfo);
+	dirp->di->fileType = diritem.file_type;
+	strcpy(dirp->di->d_name, diritem.name);
+	return dirp->di;
 
 }
 
 fdDir* fs_opendir(const char* pathname) 
 {
 	struct bfs_dir_entry* dir_entry = malloc(sizeof(struct bfs_dir_entry));
-	if (!get_file_from_path(dir_entry, (char *)pathname)) {
+	if (get_file_from_path(dir_entry, (char *)pathname)) {
 		fprintf(stderr, "Unable to get file from path: %s\n", pathname);
 		return NULL;
 	}
@@ -225,15 +232,17 @@ fdDir* fs_opendir(const char* pathname)
 	struct bfs_dir_entry* directory_arr = malloc(bfs_vcb->block_size * dir_entry->len);
 
 	// dir entry is file . 
+	printf("reading %d blocks from loc %ld\n", dir_entry->len, dir_entry->location);
 	if (LBAread(directory_arr, dir_entry->len, dir_entry->location) != dir_entry->len) {
 		fprintf(stderr, "Error reading directory at %ld\n", dir_entry->location);
 		return NULL;
 	}
 
 	fdDir* dirp = malloc(sizeof(fdDir));
-	dirp->d_reclen = sizeof(fdDir);
+	dirp->d_reclen = sizeof(fdDir);;
 	dirp->dirEntryPosition = 0;
 	dirp->directory = directory_arr;
+	dirp->di = malloc(sizeof(struct fs_diriteminfo));
 
 	return dirp;
 }
