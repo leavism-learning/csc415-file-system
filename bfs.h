@@ -190,7 +190,21 @@ int write_current_vcb();
 
 int write_current_gdt();
 
-char* get_filename_from_path(const char* pathname)
+/**
+ * Extracts and returns the last component of a given file path.
+ *
+ * @param pathname The file path as a null-terminated string. 
+ *                 It should not be NULL or an empty string.
+ *                 
+ * @return A dynamically allocated string containing the last component 
+ *         of the path.
+ *         If the input is NULL or empty, returns an empty string.
+ *         If no directory separator ('/') is present, returns a copy 
+ *         of the entire path.
+ *         
+ * Note: The caller must ensure to free this memory when it is no longer needed.
+ */
+char* get_filename_from_path(const char* pathname);
 
 /**************************************************************
  * bfs_init.c
