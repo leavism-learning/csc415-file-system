@@ -209,8 +209,8 @@ struct fs_diriteminfo* fs_readdir(fdDir* dirp)
 
 fdDir* fs_opendir(const char* pathname) 
 {
-	struct bfs_dir_entry* dir_entry;
-	if (!get_file_from_path(dir_entry, (char *) pathname)) {
+	struct bfs_dir_entry* dir_entry = malloc(sizeof(struct bfs_dir_entry));
+	if (!get_file_from_path(dir_entry, (char *)pathname)) {
 		fprintf(stderr, "Unable to get file from path: %s\n", pathname);
 		return NULL;
 	}
