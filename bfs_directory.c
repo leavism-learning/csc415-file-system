@@ -15,10 +15,32 @@
 #include "bfs.h"
 
 /*
+ * Create a directory entry with given name & size
+ */
+int bfs_create_direntry(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, uint64_t pos, uint8_t type)
+{
+	dir_entry->size = size;
+	dir_entry->len = bytes_to_blocks(size);
+	strcpy(dir_entry->name, name);
+	dir_entry->location = pos;
+	time_t current_time = time(NULL);
+	dir_entry->file_type = type;
+	dir_entry->date_created = current_time;
+	dir_entry->date_modified = current_time;
+	dir_entry->date_accessed = current_time;
+	return 0;
+}
+
+/*
 * Create a directory (dir entry array) at the specified position
 */
 int bfs_create_directory(bfs_block_t pos, bfs_block_t parent)
 {
+	struct bfs_dir_entry* parent_dir = malloc(bfs_vcb->block_size);
+	if (LBAread(parent_dir, 1, parent) != 1) {
+		fprintf(stderr, "Unable to LBAread parent dir %ld in create_dir\n", parent);
+	}
+
 	struct bfs_dir_entry* buffer = malloc(bfs_vcb->block_size);
 	if (buffer == NULL) {
 		perror("malloc in bfs_create_directory");
@@ -33,14 +55,13 @@ int bfs_create_directory(bfs_block_t pos, bfs_block_t parent)
 	// create . and .. directory entries
 	struct bfs_dir_entry here;
 	bfs_create_direntry(&here, ".", bfs_vcb->block_size, pos, 0);
-	struct bfs_dir_entry parent_dir;
-	bfs_create_direntry(&parent_dir, "..", bfs_vcb->block_size, pos, 0);
+	//bfs_create_direntry(&parent_dir[0], "..", bfs_vcb->block_size, pos, 0);
 
 	struct bfs_dir_entry nulldir;
 	nulldir.name[0] = '\n';
 
 	buffer[0] = here;
-	buffer[1] = parent_dir;
+	buffer[1] = parent_dir[0];
 	buffer[2] = nulldir;
 
 	if (LBAwrite(buffer, 1, pos) != 1) {

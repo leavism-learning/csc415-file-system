@@ -125,20 +125,17 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 			fprintf(stderr, "Error: Unable to get free block for root directory\n");
 		}
 
-		if (bfs_create_directory(bfs_vcb->root_loc, bfs_vcb->root_loc)) {
-			fprintf(stderr, "Error: Unable to create root directory\n");
-			exitFileSystem();
-		}
+		// create root dir
+		struct bfs_dir_entry* dir_arr = malloc(bfs_vcb->block_size * bfs_vcb->root_len);
 
-		// read the newly created root directory into bfs_cwd
-		bfs_cwd = malloc(bfs_vcb->block_size);
-		if (LBAread(bfs_cwd, 1, bfs_vcb->root_loc) != 1) {
-			fprintf(stderr, "Error: Unable to LBAread buffer %ld\n", 
-		   		bfs_vcb->root_loc);
-			free(bfs_cwd);
-			bfs_cwd = NULL;
-			exitFileSystem();
-		}
+		struct bfs_dir_entry root_here;
+		bfs_create_direntry(&dir_arr[0], ".", bfs_vcb->root_len * bfs_vcb->block_size, bfs_vcb->root_loc, 0);
+		bfs_create_direntry(&dir_arr[1], "..", bfs_vcb->root_len * bfs_vcb->block_size, bfs_vcb->root_loc, 0);
+		dir_arr[2].name[0] = '\n';
+
+		LBAwrite(dir_arr, bfs_vcb->root_len, bfs_vcb->root_loc);
+
+		bfs_cwd = dir_arr;
 
 		bfs_path = "/";
 	}

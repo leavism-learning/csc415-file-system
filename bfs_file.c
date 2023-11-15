@@ -15,22 +15,6 @@
 #include "bfs.h"
 #include "mfs.h"
 
-/*
- * Create a directory entry with given name & size
- */
-int bfs_create_direntry(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, uint64_t pos, uint8_t type)
-{
-	dir_entry->size = size;
-	dir_entry->len = bytes_to_blocks(size);
-	strcpy(dir_entry->name, name);
-	dir_entry->location = pos;
-	time_t current_time = time(NULL);
-	dir_entry->file_type = type;
-	dir_entry->date_created = current_time;
-	dir_entry->date_modified = current_time;
-	dir_entry->date_accessed = current_time;
-	return 0;
-}
 
 /*
  * Given a buffer, create extent table for that buffer
