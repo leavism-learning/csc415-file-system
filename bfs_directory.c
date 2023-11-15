@@ -32,9 +32,9 @@ int bfs_create_directory(bfs_block_t pos, bfs_block_t parent)
 
 	// create . and .. directory entries
 	struct bfs_dir_entry here;
-	bfs_create_file(&here, ".", bfs_vcb->block_size, pos, 0);
+	bfs_create_direntry(&here, ".", bfs_vcb->block_size, pos, 0);
 	struct bfs_dir_entry parend_dir;
-	bfs_create_file(&parend_dir, "..", bfs_vcb->block_size, pos, 0);
+	bfs_create_direntry(&parend_dir, "..", bfs_vcb->block_size, pos, 0);
 
 	buffer[0] = here;
 	buffer[1] = parend_dir;

@@ -24,96 +24,87 @@
 #define MAXFCBS 20
 #define B_CHUNK_SIZE 512
 
-typedef struct b_fcb
-	{
+typedef struct b_fcb {
 	/** TODO add al the information you need in the file control block **/
-	char * buf;		//holds the open file buffer
+	char* buf;		//holds the open file buffer
 	int index;		//holds the current position in the buffer
 	int buflen;		//holds how many valid bytes are in the buffer
-	} b_fcb;
-	
+} b_fcb;
+
 b_fcb fcbArray[MAXFCBS];
 
 int startup = 0;	//Indicates that this has not been initialized
 
 //Method to initialize our file system
 void b_init ()
-	{
+{
 	//init fcbArray to all free
-	for (int i = 0; i < MAXFCBS; i++)
-		{
+	for (int i = 0; i < MAXFCBS; i++) {
 		fcbArray[i].buf = NULL; //indicates a free fcbArray
-		}
-		
-	startup = 1;
 	}
+
+	startup = 1;
+}
 
 //Method to get a free FCB element
 b_io_fd b_getFCB ()
-	{
-	for (int i = 0; i < MAXFCBS; i++)
-		{
-		if (fcbArray[i].buff == NULL)
-			{
+{
+	for (int i = 0; i < MAXFCBS; i++) {
+		if (fcbArray[i].buf == NULL) {
 			return i;		//Not thread safe (But do not worry about it for this assignment)
-			}
 		}
-	return (-1);  //all in use
 	}
-	
+	return (-1);  //all in use
+}
+
 // Interface to open a buffered file
 // Modification of interface for this assignment, flags match the Linux flags for open
 // O_RDONLY, O_WRONLY, or O_RDWR
 b_io_fd b_open (char * filename, int flags)
-	{
+{
 	b_io_fd returnFd;
 
 	//*** TODO ***:  Modify to save or set any information needed
 	//
 	//
-		
-	if (startup == 0) b_init();  //Initialize our system
-	
+
+	if (startup == 0) 
+		b_init();  //Initialize our system
+
 	returnFd = b_getFCB();				// get our own file descriptor
-										// check for error - all used FCB's
-	
+	// check for error - all used FCB's
+
 	return (returnFd);						// all set
-	}
+}
 
 
 // Interface to seek function	
 int b_seek (b_io_fd fd, off_t offset, int whence)
-	{
-	if (startup == 0) b_init();  //Initialize our system
+{
+	if (startup == 0) 
+		b_init();  //Initialize our system
 
 	// check that fd is between 0 and (MAXFCBS-1)
-	if ((fd < 0) || (fd >= MAXFCBS))
-		{
+	if ((fd < 0) || (fd >= MAXFCBS)) {
 		return (-1); 					//invalid file descriptor
-		}
-		
-		
-	return (0); //Change this
 	}
 
-
+	return (0); //Change this
+}
 
 // Interface to write function	
 int b_write (b_io_fd fd, char * buffer, int count)
-	{
-	if (startup == 0) b_init();  //Initialize our system
+{
+	if (startup == 0) 
+		b_init();  //Initialize our system
 
 	// check that fd is between 0 and (MAXFCBS-1)
-	if ((fd < 0) || (fd >= MAXFCBS))
-		{
+	if ((fd < 0) || (fd >= MAXFCBS)) {
 		return (-1); 					//invalid file descriptor
-		}
-		
-		
-	return (0); //Change this
 	}
 
-
+	return (0); //Change this
+}
 
 // Interface to read a buffer
 
@@ -135,21 +126,21 @@ int b_write (b_io_fd fd, char * buffer, int count)
 //  | Part1       |  Part 2                                        | Part3  |
 //  +-------------+------------------------------------------------+--------+
 int b_read (b_io_fd fd, char * buffer, int count)
-	{
+{
 
-	if (startup == 0) b_init();  //Initialize our system
+	if (startup == 0) 
+		b_init();  //Initialize our system
 
 	// check that fd is between 0 and (MAXFCBS-1)
-	if ((fd < 0) || (fd >= MAXFCBS))
-		{
+	if ((fd < 0) || (fd >= MAXFCBS)) {
 		return (-1); 					//invalid file descriptor
-		}
-		
-	return (0);	//Change this
 	}
-	
+
+	return (0);	//Change this
+}
+
 // Interface to Close the file	
 int b_close (b_io_fd fd)
-	{
-
-	}
+{
+	return 0;
+}

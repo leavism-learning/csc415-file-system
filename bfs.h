@@ -155,7 +155,7 @@ int find_file(char* filename, struct bfs_dir_entry* directory);
  * // TODO: Not clear what these should be yet. Need more planning.
  **************************************************************/
 
-int bfs_create_file(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, uint64_t pos, uint8_t type);
+int bfs_create_direntry(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, uint64_t pos, uint8_t type);
 
 int bfs_create_extent(void* extent_block, int size);
 

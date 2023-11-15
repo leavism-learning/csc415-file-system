@@ -16,9 +16,9 @@
 #include "mfs.h"
 
 /*
- * Create a file with given name & size
+ * Create a directory entry with given name & size
  */
-int bfs_create_file(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, uint64_t pos, uint8_t type)
+int bfs_create_direntry(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, uint64_t pos, uint8_t type)
 {
 	dir_entry->size = size;
 	strcpy(dir_entry->name, name);
