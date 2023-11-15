@@ -131,7 +131,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		struct bfs_dir_entry root_here;
 		bfs_create_direntry(&dir_arr[0], ".", bfs_vcb->root_len * bfs_vcb->block_size, bfs_vcb->root_loc, 0);
 		bfs_create_direntry(&dir_arr[1], "..", bfs_vcb->root_len * bfs_vcb->block_size, bfs_vcb->root_loc, 0);
-		dir_arr[2].name[0] = '\n';
+		dir_arr[2].name[0] = '\0';
 
 		LBAwrite(dir_arr, bfs_vcb->root_len, bfs_vcb->root_loc);
 

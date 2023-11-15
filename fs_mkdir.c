@@ -38,7 +38,7 @@ int fs_mkdir(const char *pathname, mode_t mode)
 		printf("Size of last element: %ld , %s\n", strlen(lastElement), lastElement);
 
 		parentPath[pathLength - strlen(lastElement)] = '\0';
-		
+
 
 		if(get_file_from_path(parent, parentPath) != 0) {
 			fprintf(stderr, "Incorrect parent path!");
@@ -47,6 +47,7 @@ int fs_mkdir(const char *pathname, mode_t mode)
 
 	}
 
+	// directory needs 2 things: directory entry array (initially has ., .. and \0)
 	if(create_dir_entry(&dentry, lastElement, sizeof(struct bfs_dir_entry), 0) != 0) {
 		fprintf(stderr, "Name provided is too long!");
 	}
@@ -61,4 +62,6 @@ int fs_mkdir(const char *pathname, mode_t mode)
 	bfs_create_directory(dentry.location, parent->location);
 
 	free(parent);
+
+	return 0;
 }

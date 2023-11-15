@@ -58,7 +58,7 @@ int bfs_create_directory(bfs_block_t pos, bfs_block_t parent)
 	//bfs_create_direntry(&parent_dir[0], "..", bfs_vcb->block_size, pos, 0);
 
 	struct bfs_dir_entry nulldir;
-	nulldir.name[0] = '\n';
+	nulldir.name[0] = '\0';
 
 	buffer[0] = here;
 	buffer[1] = parent_dir[0];
@@ -121,7 +121,6 @@ int get_file_from_path(struct bfs_dir_entry* target, char* path)
 {
 	char* filepath = strdup(path);
 	struct bfs_dir_entry* current_dir;
-	printf("reading from positon %ld\n", bfs_vcb->root_loc);
 
 	// if first char of filepath is /, it is absolute, so we should start 
 	// traversing from root. otherwise ,start traversing from cwd
@@ -223,7 +222,7 @@ struct fs_diriteminfo* fs_readdir(fdDir* dirp)
 
 	// TODO bounds check
 	struct bfs_dir_entry diritem = (dirp->directory)[dirp->dirEntryPosition++];
-	if (diritem.name[0] == '\n') {
+	if (diritem.name[0] == '\0') {
 		return NULL;
 	}
 
@@ -253,7 +252,6 @@ fdDir* fs_opendir(const char* pathname)
 	struct bfs_dir_entry* directory_arr = malloc(bfs_vcb->block_size * dir_entry->len);
 
 	// dir entry is file . 
-	printf("reading %d blocks from loc %ld\n", dir_entry->len, dir_entry->location);
 	if (LBAread(directory_arr, dir_entry->len, dir_entry->location) != dir_entry->len) {
 		fprintf(stderr, "Error reading directory at %ld\n", dir_entry->location);
 		return NULL;
