@@ -42,3 +42,20 @@ int write_current_gdt()
 	}
 	return 0;
 }
+
+char* get_filename_from_path(const char* pathname) {
+	// Handles NULL or empty pathname
+	if (pathname == NULL || *pathname == '\0') {
+		char* filename = malloc(sizeof(char));
+		if (filename) *filename = '\0';
+		return filename;
+	}
+
+	// Finds last ocrrence of '/'
+	const char* last_slash = strchr(pathname, '/');
+	if (last_slash == NULL) {
+		return strdup(pathname);
+	}
+
+	return strdup(last_slash + 1);
+}

@@ -190,6 +190,8 @@ int write_current_vcb();
 
 int write_current_gdt();
 
+char* get_filename_from_path(const char* pathname)
+
 /**************************************************************
  * bfs_init.c
  * Functions for initializing the Basic File System.
