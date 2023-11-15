@@ -29,6 +29,7 @@ typedef struct b_fcb {
 	char* buf;		//holds the open file buffer
 	int index;		//holds the current position in the buffer
 	int buflen;		//holds how many valid bytes are in the buffer
+	struct bfs_dir_entry * file; // Holds the file info
 } b_fcb;
 
 b_fcb fcbArray[MAXFCBS];
@@ -62,16 +63,37 @@ b_io_fd b_getFCB ()
 // O_RDONLY, O_WRONLY, or O_RDWR
 b_io_fd b_open (char * filename, int flags)
 {
+
+	//Initialize our system
+	if (startup == 0) 
+		b_init();
+
+	// TODO: This just gets the directory entry
+	// Isn't necessaril
+	struct bfs_dir_entry* directory_array;
+	if (get_file_from_path(&directory_array, filename)) {
+		fprintf(stderr, "Unable to get file from path %s\n", filename);
+		return (-1);
+	}
+
+	char* filename = get_filename_from_path(filename);
+	if (*filename == '\0') {
+		fprintf(stderr, "Filename from path is empty.\n");
+		return (-1);
+	}
+
+	// TODO: Now that we have the directory entry and extracted the
+	// file name, we can try to find the specific DE that is our file.
+	// Notes:
+	// 	- The last directory entry in the array is marked with \n says Griffin
+	// 	- Ask Griffin how to traverse the directory array of dir entries
+	// 	- Then find the directory entry that has our filename
+
+
 	b_io_fd returnFd;
 
-	//*** TODO ***:  Modify to save or set any information needed
-	//
-	//
-
-	if (startup == 0) 
-		b_init();  //Initialize our system
-
-	returnFd = b_getFCB();				// get our own file descriptor
+	// get our own file descriptor
+	returnFd = b_getFCB();			
 	// check for error - all used FCB's
 
 	return (returnFd);						// all set
