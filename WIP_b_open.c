@@ -78,26 +78,17 @@ b_io_fd b_open (char * filename, int flags)
 
 	struct bfs_dir_entry* dir_entry = malloc(sizeof(struct bfs_dir_entry));
 	if (get_file_from_path(dir_entry, (char *)filename)) {
+		if (!(flags & O_CREAT)) {
+			fprintf(stderr, "Cannot b_open %s. File does not exist and create flag has not been set.\n", filename);
+			free(dir_entry);
+			return (-1);
+		}
+
 		fprintf(stderr, "Unable to get file from path: %s\n", filename);
 		free(dir_entry);
 		return (-1);
 	}
 
-	// TODO Handle flags now that we've found the file from path
-
-	if (flags & O_RDONLY) {
-		fprintf(stderr, "Cannot b_open %s flag is set to read only.\n", filename);
-		free(dir_entry);
-		return (-1);
-	}
-
-	// TODO Question for Griffin: How does get_file_from_path() handle
-	// a file that doesn't exist, but the pathname is correct.
-	// Depending on his answer, this if-statement below may need to be
-	// inside the error handling for get_file_from_path
-	if (flags & O_CREAT) {
-		fprintf(stderr, "Cannot b_open");
-	}
 
 
 
