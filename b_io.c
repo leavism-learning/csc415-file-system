@@ -26,10 +26,11 @@
 #define B_CHUNK_SIZE 512
 
 typedef struct b_fcb {
-	/** TODO add al the information you need in the file control block **/
+	/** TODO add all the information you need in the file control block **/
 	char* buf;		//holds the open file buffer
 	int index;		//holds the current position in the buffer
 	int buflen;		//holds how many valid bytes are in the buffer
+	int access_mode;	// The current access mode
 	struct bfs_dir_entry * file; // Holds the file info
 } b_fcb;
 
