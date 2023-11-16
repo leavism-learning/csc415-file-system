@@ -148,11 +148,10 @@ struct fs_diriteminfo {
 // that everytime the caller calls the function readdir, you give the next
 // entry in the directory
 typedef struct {
-	// TODO:  Fill in this structure with what your open/read directory needs
-	unsigned short d_reclen;			/* length of this record */
+	unsigned short d_reclen;					/* length of this record */
 	unsigned short dirEntryPosition;	/* which directory entry position, like file pos */
-	struct bfs_dir_entry*	directory;			/* Pointer to the loaded directory you want to iterate */
-	struct fs_diriteminfo* di;			/* Pointer to the structure you return from read */
+	struct bfs_dir_entry*	directory;	/* Pointer to the loaded directory you want to iterate */
+	struct fs_diriteminfo* di;				/* Pointer to the structure you return from read */
 } fdDir;
 
 extern struct vcb_s *bfs_vcb;
