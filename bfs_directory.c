@@ -226,11 +226,7 @@ struct fs_diriteminfo* fs_readdir(fdDir* dirp)
 		return NULL;
 	}
 
-	// Handle dirp is out of bounds or end of directory
-	if ((dirp->directory)[dirp->dirEntryPosition].name[0] == '\0') {
-			return NULL;
-	}
-
+	// TODO check bounds
 	struct bfs_dir_entry diritem = (dirp->directory)[dirp->dirEntryPosition++];
 	if (diritem.name[0] == '\0') {
 		return NULL;
