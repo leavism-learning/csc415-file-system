@@ -37,6 +37,7 @@ int fs_mkdir(const char *pathname, mode_t mode)
 
 		printf("Size of last element: %ld , %s\n", strlen(lastElement), lastElement);
 
+		//truncates the given path to find the parent path
 		parentPath[pathLength - strlen(lastElement)] = '\0';
 
 
@@ -52,12 +53,11 @@ int fs_mkdir(const char *pathname, mode_t mode)
 		fprintf(stderr, "Name provided is too long!");
 	}
 
-	// bfs_create_file()
+	//TODO: have to put the newly created DE into DE array
 
-	//parent[] = dentry
+	// parent[] = dentry;
 
-	//TODO: have to finish and use bfs_create_directory
-
+	
 	dentry.location = bfs_get_free_block();
 	bfs_create_directory(dentry.location, parent->location);
 
