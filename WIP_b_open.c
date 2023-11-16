@@ -26,10 +26,11 @@
 #define B_CHUNK_SIZE 512
 
 typedef struct b_fcb {
-	/** TODO add al the information you need in the file control block **/
+	/** TODO add all the information you need in the file control block **/
 	char* buf;		//holds the open file buffer
 	int index;		//holds the current position in the buffer
 	int buflen;		//holds how many valid bytes are in the buffer
+	int access_mode;	// The current access mode
 	struct bfs_dir_entry * file; // Holds the file info
 } b_fcb;
 
@@ -75,8 +76,16 @@ b_io_fd b_open (char * filename, int flags)
 		return (-1);
 	}
 
-	struct bfs_dir_entry* directory_array = malloc(bfs_vcb->block_size * dir_entry->len);
+	// TODO Handle flags now that we've found the file from path
 
+
+	struct bfs_dir_entry* directory_array = malloc(bfs_vcb->block_size * dir_entry->len);
+	if (LBAread(directory_array, dir_entry->len, dir_entry->location) != dir_entry->len) {
+		fprintf(stderr, "Error reading directory at %ld\n", dir_entry->location);
+		return NULL;
+	}
+
+	// TODO Probaby LBAread to fill directory_array with the actual contents
 
 	char* filename = get_filename_from_path(filename);
 	if (*filename == '\0') {
@@ -85,19 +94,13 @@ b_io_fd b_open (char * filename, int flags)
 		return (-1);
 	}
 
-	// TODO: Now that we have the directory entry and extracted the
-	// file name, we can try to find the specific DE that is our file.
-	// Notes:
-	// 	- The last directory entry in the array is marked with \n says Griffin
-	// 	- Ask Griffin how to traverse the directory array of dir entries
-	// 	- Then find the directory entry that has our filename
 
+	b_io_fd returnFd = b_getFCB();			
+	// TODO Handle getFCB errors
 
-	b_io_fd returnFd;
+	// TODO Load file into directory_array
 
-	// get our own file descriptor
-	returnFd = b_getFCB();			
-	// check for error - all used FCB's
+	// TODO Initialize the b_fcb struct
 
 	return (returnFd);						// all set
 }
