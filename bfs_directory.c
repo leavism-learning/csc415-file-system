@@ -183,6 +183,7 @@ int get_file_from_path(struct bfs_dir_entry* target, char* path)
 		}
 	}
 	
+	// Find the final file/directory in the path
 	int i = find_file(tokens[tok_count - 1], current_dir);
 	if (i == -1) {
 		fprintf(stderr, "Unable to find file %s\n", tokens[tok_count - 1]);
@@ -225,7 +226,11 @@ struct fs_diriteminfo* fs_readdir(fdDir* dirp)
 		return NULL;
 	}
 
-	// TODO bounds check
+	// Handle dirp is out of bounds or end of directory
+	if ((dirp->directory)[dirp->dirEntryPosition].name[0] == '\0') {
+			return NULL;
+	}
+
 	struct bfs_dir_entry diritem = (dirp->directory)[dirp->dirEntryPosition++];
 	if (diritem.name[0] == '\0') {
 		return NULL;
