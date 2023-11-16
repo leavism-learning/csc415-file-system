@@ -263,11 +263,18 @@ fdDir* fs_opendir(const char* pathname)
 		return NULL;
 	}
 
+	// Counting for total entries in this directory
+	unsigned int count = 0;
+	while(directory_arr[count].name[0] != '\0') {
+		count++;
+	}
+
 	fdDir* dirp = malloc(sizeof(fdDir));
 	dirp->d_reclen = sizeof(fdDir);;
 	dirp->dirEntryPosition = 0;
 	dirp->directory = directory_arr;
 	dirp->di = malloc(sizeof(struct fs_diriteminfo));
+	dirp->totalEntries = count;
 
 	return dirp;
 }
