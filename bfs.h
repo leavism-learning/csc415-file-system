@@ -145,6 +145,19 @@ int bfs_init_directory();
  */
 void bfs_create_here(struct bfs_dir_entry *here, int lba_position);
 
+/**
+ * Retrieves a directory entry for a specified file or directory from a given path.
+ * 
+ * @param target A pointer to a bfs_dir_entry structure where the found directory 
+ *               entry will be copied. The memory for this structure should be 
+ *               allocated by the caller.
+ *
+ * @param path Path to target file. The path can be absolute or relative.
+ *
+ * @return Returns 0 on successful retrieval of the directory entry. Returns 1 
+ *         if an error occurs, such as if the path is invalid, if any part of the 
+ *         path does not exist in the file system, or if memory allocation fails.
+ */
 int get_file_from_path(struct bfs_dir_entry* target, char* path);
 
 int find_file(char* filename, struct bfs_dir_entry* directory);
@@ -179,6 +192,7 @@ int bfs_read_extent(void* buffer, bfs_block_t block_num);
  * specified byte count.
  */
 int bytes_to_blocks(int bytes);
+
 /**
  * @brief Prints the details of a BFS directory entry.
  *

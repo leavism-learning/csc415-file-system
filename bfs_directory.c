@@ -119,56 +119,61 @@ int fs_isDir(char* pathname)
 // return directory entry from file path
 int get_file_from_path(struct bfs_dir_entry* target, char* path)
 {
+	// Duplicate provided path to avoid modifying original path
 	char* filepath = strdup(path);
+
+	// Handles reading current directory from disk
 	struct bfs_dir_entry* current_dir;
 
-	// if first char of filepath is /, it is absolute, so we should start 
-	// traversing from root. otherwise ,start traversing from cwd
 	if (filepath[0] == '/') {
+		// Absolute path, start from root
 		current_dir = malloc(bfs_vcb->block_size * bfs_vcb->root_len);
 		LBAread(current_dir, bfs_vcb->root_len, bfs_vcb->root_loc);
 	} else {
+		// Relative path, start from CWD
 		current_dir = malloc(bfs_cwd[0].size);
 		memcpy(current_dir,&bfs_cwd[0],bfs_cwd[0].size);
 	}
 
-	// get array of strings representing each entry in the filename ex.
+	// Get array of strings representing each entry in the filename ex.
 	// "/home/student/" -> { "/", "home", "student"}
 	char* tokens[strlen(filepath) * sizeof(char*)];
 	char* tok = strtok(filepath, "/");
 	int tok_count = 0;
 
-	// if tok == null, it is root
+	// If tok == null, path is just root
 	if (tok == NULL) {
 		struct bfs_dir_entry* root = malloc(bfs_vcb->block_size * bfs_vcb->root_len);
 		if (LBAread(root, bfs_vcb->root_len, bfs_vcb->root_loc) != bfs_vcb->root_len) {
 			fprintf(stderr, "Unable to LBAread %ld in get_file_from_path\n", bfs_vcb->root_loc);
 			return 1;
 		}
-		// copy first dir entry
+		// Copy root directory entry to target
 		memcpy(target, root, sizeof(struct bfs_dir_entry));
 		free(root);
 		free(filepath);
 		return 0;
 	}
 
+	// Tokenize rest of the path
 	while (tok != NULL) {
 		tokens[tok_count++] = tok;
 		tok = strtok(NULL, "/");
 	}
 
-	// navigate to penultimate token
+	// Navigate to penultimate token
 	for( int i = 0; i < tok_count - 1; i++) {
-
+		// Find the directory entry of the current token
 		int index = find_file(tokens[i], current_dir);
+		// Handle if file not found or is not a directory
 		if (index == -1 || current_dir[i].file_type != 0) {
-			// error case
-			fprintf(stderr, "matching file for %s not found", tokens[i]);
+			fprintf(stderr, "Matching file for %s not found", tokens[i]);
 			free(filepath);
 			return 1;
 		}
 		
 		struct bfs_dir_entry target_dir = current_dir[i];
+
 
 		if (LBAread(current_dir, bytes_to_blocks(target_dir.size), 
 			  target_dir.location)) {
