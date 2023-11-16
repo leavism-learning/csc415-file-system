@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "b_io.h"
+#include "bfs.h"
 
 #define MAXFCBS 20
 #define B_CHUNK_SIZE 512
@@ -68,17 +69,19 @@ b_io_fd b_open (char * filename, int flags)
 	if (startup == 0) 
 		b_init();
 
-	// TODO: This just gets the directory entry
-	// Isn't necessaril
-	struct bfs_dir_entry* directory_array;
-	if (get_file_from_path(&directory_array, filename)) {
-		fprintf(stderr, "Unable to get file from path %s\n", filename);
+	struct bfs_dir_entry* dir_entry = malloc(sizeof(struct bfs_dir_entry));
+	if (get_file_from_path(dir_entry, (char *)filename)) {
+		fprintf(stderr, "Unable to get file from path: %s\n", filename);
 		return (-1);
 	}
+
+	struct bfs_dir_entry* directory_array = malloc(bfs_vcb->block_size * dir_entry->len);
+
 
 	char* filename = get_filename_from_path(filename);
 	if (*filename == '\0') {
 		fprintf(stderr, "Filename from path is empty.\n");
+		free(filename);
 		return (-1);
 	}
 
