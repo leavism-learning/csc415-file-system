@@ -226,7 +226,11 @@ struct fs_diriteminfo* fs_readdir(fdDir* dirp)
 		return NULL;
 	}
 
-	// TODO check bounds
+	// Bounds check
+	if (dirp->dirEntryPosition >= dirp->totalEntries) {
+			return NULL;
+	}
+
 	struct bfs_dir_entry diritem = (dirp->directory)[dirp->dirEntryPosition++];
 	if (diritem.name[0] == '\0') {
 		return NULL;
