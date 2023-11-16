@@ -65,18 +65,40 @@ b_io_fd b_getFCB ()
 // O_RDONLY, O_WRONLY, or O_RDWR
 b_io_fd b_open (char * filename, int flags)
 {
-
 	//Initialize our system
 	if (startup == 0) 
 		b_init();
 
+	char* filename = get_filename_from_path(filename);
+	if (*filename == '\0') {
+		fprintf(stderr, "Filename from path is empty.\n");
+		free(filename);
+		return (-1);
+	}
+
 	struct bfs_dir_entry* dir_entry = malloc(sizeof(struct bfs_dir_entry));
 	if (get_file_from_path(dir_entry, (char *)filename)) {
 		fprintf(stderr, "Unable to get file from path: %s\n", filename);
+		free(dir_entry);
 		return (-1);
 	}
 
 	// TODO Handle flags now that we've found the file from path
+
+	if (flags & O_RDONLY) {
+		fprintf(stderr, "Cannot b_open %s flag is set to read only.\n", filename);
+		free(dir_entry);
+		return (-1);
+	}
+
+	// TODO Question for Griffin: How does get_file_from_path() handle
+	// a file that doesn't exist, but the pathname is correct.
+	// Depending on his answer, this if-statement below may need to be
+	// inside the error handling for get_file_from_path
+	if (flags & O_CREAT) {
+		fprintf(stderr, "Cannot b_open");
+	}
+
 
 
 	struct bfs_dir_entry* directory_array = malloc(bfs_vcb->block_size * dir_entry->len);
@@ -86,13 +108,6 @@ b_io_fd b_open (char * filename, int flags)
 	}
 
 	// TODO Probaby LBAread to fill directory_array with the actual contents
-
-	char* filename = get_filename_from_path(filename);
-	if (*filename == '\0') {
-		fprintf(stderr, "Filename from path is empty.\n");
-		free(filename);
-		return (-1);
-	}
 
 
 	b_io_fd returnFd = b_getFCB();			
