@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "b_io.h"
+#include "mfs.h"
 
 #define MAXFCBS 20
 #define B_CHUNK_SIZE 512
@@ -17,7 +18,7 @@ typedef struct b_fcb {
 	int buflen;		//holds how many valid bytes are in the buffer
 	int access_mode;	// The current access mode
 	int block_index;	// holds current block position in file
-	struct bfs_dir_entry * file; // Holds the file info
+	struct bfs_dir_entry * file; // Holds the file infos
 } b_fcb;
 
 int startup = 0;	//Indicates that this has not been initialized
@@ -95,7 +96,7 @@ int b_write (b_io_fd fd, char * buffer, int count)
 }
 
 /*
- * Directory Entry stores first-class information about a file. 128 byte size
+ //* Directory Entry stores first-class information about a file. 128 byte size
  
 struct bfs_dir_entry {
 	uint64_t size;				 // file size in bytes (max 16384 PiB)
@@ -147,6 +148,11 @@ int b_read (b_io_fd fd, char * buffer, int count)
 
 	//TODO: check access mode for file?
 
+	// checks if file exists
+	if (fcbArray[fd].file == NULL) {
+		return (-1); 			//empty fd
+	}
+
 	// keeps track of total bytes to be read
 	// either count or size of file, depending on which is smaller
 	int totalToRead = count;
@@ -156,6 +162,7 @@ int b_read (b_io_fd fd, char * buffer, int count)
 
 	int totalRead = 0;
 	char* fileBuf = fcbArray[fd].buf;
+	int size = fcbArray[fd].file->len;
 
 	//find the file
 	return (0);	//Change this
