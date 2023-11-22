@@ -83,29 +83,6 @@ int bfs_gdt_init(struct block_group_desc* gdt)
   return 0;
 }
 
-/*
- * Initialize a directory entry.
- */
-int create_dir_entry(struct bfs_dir_entry* dentry, char* name, int size,
-                     int type)
-{
-  // dentry->vcb = (uint64_t) &vcb;
-  dentry->size = size;
-  dentry->file_type = type;
-
-  time_t current_time = time(NULL);
-  dentry->date_created = current_time;
-  dentry->date_modified = current_time;
-  dentry->date_accessed = current_time;
-
-  if (strlen(name) > MAX_FILENAME_LEN - 1) {
-    return 1;
-  }
-  strcpy(dentry->name, name);
-
-  return 0;
-}
-
 void bfs_generate_uuid(uint8_t *uuid)
 {
   // fill buffer with random values

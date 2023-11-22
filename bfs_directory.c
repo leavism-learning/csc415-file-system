@@ -17,7 +17,7 @@
 /*
  * Create a directory entry with given name & size
  */
-int bfs_create_direntry(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, uint64_t pos, uint8_t type)
+int bfs_create_dir_entry(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, uint64_t pos, uint8_t type)
 {
 	dir_entry->size = size;
 	dir_entry->len = bytes_to_blocks(size);
@@ -36,26 +36,27 @@ int bfs_create_direntry(struct bfs_dir_entry* dir_entry, char* name, uint64_t si
 */
 int bfs_create_directory(bfs_block_t pos, bfs_block_t parent)
 {
-	struct bfs_dir_entry* parent_dir = malloc(bfs_vcb->block_size);
-	if (LBAread(parent_dir, 1, parent) != 1) {
+	struct bfs_dir_entry* parent_dir = malloc(bfs_vcb->block_size * INIT_DIR_LEN);
+	if (LBAread(parent_dir, INIT_DIR_LEN, parent) != INIT_DIR_LEN) {
 		fprintf(stderr, "Unable to LBAread parent dir %ld in create_dir\n", parent);
 	}
 
-	struct bfs_dir_entry* buffer = malloc(bfs_vcb->block_size);
+	struct bfs_dir_entry* buffer = malloc(bfs_vcb->block_size * INIT_DIR_LEN);
 	if (buffer == NULL) {
 		perror("malloc in bfs_create_directory");
 		return 1;
 	}
 
-	if (LBAread(buffer, 1, pos) != 1) {
+	if (LBAread(buffer, INIT_DIR_LEN, pos) != INIT_DIR_LEN) {
 		fprintf(stderr, "Unable to LBAread pos %ld in bfs_create_dir\n", pos);
 		return 1;
 	}
 
 	// create . and .. directory entries
 	struct bfs_dir_entry here;
-	bfs_create_direntry(&here, ".", bfs_vcb->block_size, pos, 0);
-	//bfs_create_direntry(&parent_dir[0], "..", bfs_vcb->block_size, pos, 0);
+	bfs_create_dir_entry(&here, ".", bfs_vcb->block_size * INIT_DIR_LEN, pos, 0);
+	struct bfs_dir_entry parent_dentry;
+	bfs_create_dir_entry(&parent_dentry, "..", bfs_vcb->block_size * parent_dir[0].len, parent_dir[0].location, 0);
 
 	struct bfs_dir_entry nulldir;
 	nulldir.name[0] = '\0';
@@ -64,7 +65,7 @@ int bfs_create_directory(bfs_block_t pos, bfs_block_t parent)
 	buffer[1] = parent_dir[0];
 	buffer[2] = nulldir;
 
-	if (LBAwrite(buffer, 1, pos) != 1) {
+	if (LBAwrite(buffer, INIT_DIR_LEN, pos) != INIT_DIR_LEN) {
 		fprintf(stderr, "Unable to LBAwrite pos %ld in bfs_create_dir\n", pos);
 	}
 
@@ -84,7 +85,6 @@ int fs_setcwd(char* pathname)
 		fprintf(stderr, "Unable to get file from path %s\n", pathname);
 		return 1;
 	}
-	printf("got block %ld\n", file.location);
 
 	int b = bytes_to_blocks(file.size);
 	bfs_cwd = realloc(bfs_cwd, b * bfs_vcb->block_size);
@@ -110,7 +110,7 @@ int fs_isFile(char* filename)
 int fs_isDir(char* pathname)
 {
 	struct bfs_dir_entry file;
-	if (!get_file_from_path(&file, pathname)) {
+	if (get_file_from_path(&file, pathname)) {
 		return 0;
 	}
 	return !file.file_type;
@@ -226,11 +226,6 @@ struct fs_diriteminfo* fs_readdir(fdDir* dirp)
 		return NULL;
 	}
 
-	// Bounds check
-	if (dirp->dirEntryPosition >= dirp->totalEntries) {
-			return NULL;
-	}
-
 	struct bfs_dir_entry diritem = (dirp->directory)[dirp->dirEntryPosition++];
 	if (diritem.name[0] == '\0') {
 		return NULL;
@@ -267,18 +262,11 @@ fdDir* fs_opendir(const char* pathname)
 		return NULL;
 	}
 
-	// Counting for total entries in this directory
-	unsigned int count = 0;
-	while(directory_arr[count].name[0] != '\0') {
-		count++;
-	}
-
 	fdDir* dirp = malloc(sizeof(fdDir));
 	dirp->d_reclen = sizeof(fdDir);;
 	dirp->dirEntryPosition = 0;
 	dirp->directory = directory_arr;
 	dirp->di = malloc(sizeof(struct fs_diriteminfo));
-	dirp->totalEntries = count;
 
 	return dirp;
 }

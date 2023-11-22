@@ -168,7 +168,8 @@ int find_file(char* filename, struct bfs_dir_entry* directory);
  * // TODO: Not clear what these should be yet. Need more planning.
  **************************************************************/
 
-int bfs_create_direntry(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, uint64_t pos, uint8_t type);
+// directory entry (inode) constructor
+int bfs_create_dir_entry(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, uint64_t pos, uint8_t type);
 
 int bfs_create_extent(void* extent_block, int size);
 
@@ -203,6 +204,8 @@ void print_dir_entry(struct bfs_dir_entry *dentry);
 int write_current_vcb();
 
 int write_current_gdt();
+
+void reload_cwd();
 
 /**
  * Extracts and returns the last component of a given file path.
@@ -253,21 +256,6 @@ int bfs_vcb_init(char *name, uint64_t num_blocks, uint64_t block_size);
  * @return 0 on successful initialization of the GDT, non-zero otherwise.
  */
 int bfs_gdt_init(struct block_group_desc *gdt);
-
-/**
- * @brief Initializes a BFS directory entry with the provided parameters.
- *
- * @param dentry: Pointer to the directory entry to be initialized.
- * @param name: Name of the directory or file. Should not exceed
- * `MAX_FILENAME_LEN - 1` characters.
- * @param size: Size of the directory or file.
- * @param type: Type of the directory or file (e.g., file, directory).
- *
- * @return 0 if the directory entry was successfully initialized, 1 if the
- * provided name exceeds the maximum allowed length.
- */
-int create_dir_entry(struct bfs_dir_entry *dentry, char *name, int size,
-                     int type);
 
 /**
  * @brief Generates a UUID (Universal Unique Identifier).

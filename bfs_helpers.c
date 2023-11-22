@@ -59,3 +59,14 @@ char* get_filename_from_path(const char* pathname) {
 
 	return strdup(last_slash + 1);
 }
+
+void reload_cwd() {
+	if (bfs_cwd == NULL) {
+		fprintf(stderr, "Error: CWD is null\n");
+		return;
+	}
+
+	if (LBAread(bfs_cwd, bfs_cwd[0].len, bfs_cwd[0].location) != bfs_cwd[0].len) {
+		fprintf(stderr, "error reloading bfs_cwd\n");
+	}
+}

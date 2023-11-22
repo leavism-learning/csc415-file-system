@@ -32,7 +32,6 @@ void print_uuid(uint8_t *uuid);
 
 int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize) 
 {
-	printf("size is %ld\n", sizeof(struct bfs_dir_entry));
 
 	printf("Initializing File System with %ld blocks with a block size of %ld\n",
 		numberOfBlocks, blockSize);
@@ -114,8 +113,8 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		}
 
 		// initialize root directory with size 1
-		bfs_vcb->root_loc = bfs_get_free_block();
-		bfs_vcb->root_len = 1;
+		bfs_vcb->root_loc = bfs_get_free_blocks(INIT_DIR_LEN);
+		bfs_vcb->root_len = INIT_DIR_LEN;
 
 		if (write_current_vcb()) {
 			exitFileSystem();
@@ -129,8 +128,8 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		struct bfs_dir_entry* dir_arr = malloc(bfs_vcb->block_size * bfs_vcb->root_len);
 
 		struct bfs_dir_entry root_here;
-		bfs_create_direntry(&dir_arr[0], ".", bfs_vcb->root_len * bfs_vcb->block_size, bfs_vcb->root_loc, 0);
-		bfs_create_direntry(&dir_arr[1], "..", bfs_vcb->root_len * bfs_vcb->block_size, bfs_vcb->root_loc, 0);
+		bfs_create_dir_entry(&dir_arr[0], ".", bfs_vcb->root_len * bfs_vcb->block_size, bfs_vcb->root_loc, 0);
+		bfs_create_dir_entry(&dir_arr[1], "..", bfs_vcb->root_len * bfs_vcb->block_size, bfs_vcb->root_loc, 0);
 		dir_arr[2].name[0] = '\0';
 
 		LBAwrite(dir_arr, bfs_vcb->root_len, bfs_vcb->root_loc);

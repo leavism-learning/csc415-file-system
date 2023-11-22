@@ -51,6 +51,7 @@ typedef uint64_t bfs_block_t;
 #define MAX_FILENAME_LEN 80
 #define NUM_FILES 2048
 #define ROOT_INODE 1;
+#define INIT_DIR_LEN 32
 
 /*
  * vcb_s: Volume Control Block
@@ -152,7 +153,6 @@ typedef struct {
 	unsigned short dirEntryPosition;	/* which directory entry position, like file pos */
 	struct bfs_dir_entry*	directory;	/* Pointer to the loaded directory you want to iterate */
 	struct fs_diriteminfo* di;				/* Pointer to the structure you return from read */
-	unsigned int totalEntries					/* Total number of entries in the directory */
 } fdDir;
 
 extern struct vcb_s *bfs_vcb;

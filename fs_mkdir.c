@@ -1,67 +1,85 @@
 #include "bfs.h"
 
-#define INIT_DIR_SIZE 16
-
 int fs_mkdir(const char *pathname, mode_t mode)
 {
-	struct bfs_dir_entry* parent = malloc(sizeof(struct bfs_dir_entry));
+	struct bfs_dir_entry parent_entry;
 	struct bfs_dir_entry dentry;
-	char* lastElement;
+	char* trimmed_name;
 	//the whole path until the new dir to make
-	char* parentPath = "";
+	char* parent_path = "";
 	char* delim = "/";
 
 	char* copy_pathname = strdup(pathname);
 
 	//for relative path
-	if(copy_pathname[0] != '/') {
-		parent = bfs_cwd;
-		lastElement = copy_pathname;
+	if (copy_pathname[0] != '/') {
+		if (bfs_cwd == NULL) {
+			fprintf(stderr, "Error: CWD is null");
+		}
+		parent_entry = bfs_cwd[0];
+		trimmed_name = copy_pathname;
 	}
 	//for absolute path
 	else {
 		int pathLength = strlen(copy_pathname);
-		parentPath = strdup(copy_pathname);
+		parent_path = strdup(copy_pathname);
 		char* token1 = strtok(copy_pathname, delim);
 		char* token2;
-		printf("ParentPath: %s\n", parentPath);
+		printf("ParentPath: %s\n", parent_path);
 
-		while(token1 != NULL) {
+		while (token1 != NULL) {
 			token2 = strtok(NULL, delim);
-			if(token2 == NULL) {
-				lastElement = token1;
+			if (token2 == NULL) {
+				trimmed_name = token1;
 				break;
 			}
 			token1 = token2;
 		}
 
-		printf("Size of last element: %ld , %s\n", strlen(lastElement), lastElement);
+		printf("Size of last element: %ld , %s\n", strlen(trimmed_name), trimmed_name);
 
 		//truncates the given path to find the parent path
-		parentPath[pathLength - strlen(lastElement)] = '\0';
+		parent_path[pathLength - strlen(trimmed_name)] = '\0';
 
 
-		if(get_file_from_path(parent, parentPath) != 0) {
+		if (get_file_from_path(&parent_entry, parent_path) != 0) {
 			fprintf(stderr, "Incorrect parent path!");
 		}
-		// printf("ParentPath: %s, 		Parent DE name: %s\n", parentPath, parent->name);
+		printf("ParentPath: %s, 		Parent DE name: %s\n", parent_path, parent_entry.name);
 
 	}
+
+	bfs_block_t pos = bfs_get_free_blocks(INIT_DIR_LEN);
+	printf("pos: %ld\n", pos);
+	bfs_create_dir_entry(&dentry, trimmed_name, INIT_DIR_LEN, pos, 0);
 
 	// directory needs 2 things: directory entry array (initially has ., .. and \0)
-	if(create_dir_entry(&dentry, lastElement, sizeof(struct bfs_dir_entry), 0) != 0) {
-		fprintf(stderr, "Name provided is too long!");
+	printf("parent dir loc: %ld\n", parent_entry.location);
+	if (bfs_create_directory(pos, parent_entry.location) != 0) {
+		fprintf(stderr, "Unable to create dir entry for %s\n", pathname);
 	}
 
-	//TODO: have to put the newly created DE into DE array
+	int i = 0;
+	struct bfs_dir_entry* parent_dir = malloc(bfs_vcb->block_size * parent_entry.len);
+	if (LBAread(parent_dir, parent_entry.len, parent_entry.location) != parent_entry.len) {
+		fprintf(stderr, "Error reading from parent dir %ld", parent_entry.location);
+		free(parent_dir);
+		return 1;
+	}
+	struct bfs_dir_entry d = parent_dir[i];
+	while (d.name[0] != '\0') {
+		d = parent_dir[i++];
+	}
+	parent_dir[i+1] = parent_dir[i];
+	parent_dir[i] = dentry;
 
-	// parent[] = dentry;
+	if (LBAwrite(parent_dir, parent_dir->len, parent_dir->location) != parent_dir->len) {
+		fprintf(stderr, "Error writing parent_dir dir %s to location %ld\n", parent_dir->name, parent_dir->location);
+	}
 
-	
-	dentry.location = bfs_get_free_block();
-	bfs_create_directory(dentry.location, parent->location);
+	reload_cwd();
 
-	free(parent);
+	free(parent_dir);
 
 	return 0;
 }
