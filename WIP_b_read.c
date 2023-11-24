@@ -160,9 +160,39 @@ int b_read (b_io_fd fd, char * buffer, int count)
 		totalToRead = fcbArray[fd].buflen;
 	}
 
-	int totalRead = 0;
-	char* fileBuf = fcbArray[fd].buf;
-	int size = fcbArray[fd].file->len;
+	int totalRead = 0;	//total bytes read into the user buffer
+	char* fileBuf = fcbArray[fd].buf;	// pointer to file buffer
+	int fileIndex = fcbArray[fd].index;		//current number index within file buffer
+	int fileSizeChunk = fcbArray[fd].file->len;	//file length in chunks
+
+	int remFileBufferBytes = fcbArray[fd].buflen - fileIndex;
+	int check1, check2, check3 = 0;
+
+	if (remFileBufferBytes > count) {
+		check1 = count;
+	}
+
+	else {
+		check1 = remFileBufferBytes;
+		totalToRead -= remFileBufferBytes;
+		check3 = count - remFileBufferBytes;
+		check2 = (check3 / B_CHUNK_SIZE);
+		check3 = check3 % B_CHUNK_SIZE;
+	}
+
+	if (check1 > 0) {
+		memcpy(buffer, fileBuf, check1);
+		fileBuf += check1;
+		fcbArray[fd].index += check1;
+		totalToRead -= check1;
+	}
+	if (check2 > 0) {
+		fcbArray[fd].index = 0;
+		while (check2 > 0) {
+			// figure out how to read the file chunks in
+			//LBAread(fcbArray->file.)
+		}
+	}
 
 	//find the file
 	return (0);	//Change this
