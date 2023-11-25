@@ -104,7 +104,7 @@ b_io_fd b_open (char * filename, int flags)
 
 	memcpy(fcbArray[returnFd].file, dir_entry, sizeof(struct bfs_dir_entry));
 
-	// TODO Initialize the b_fcb struct
+	// Initialize the b_fcb struct
 	char* buffer = malloc(bfs_vcb->block_size);
 	if (buffer == NULL) {
 		fprintf(stderr, "Failed to malloc for buffer.\n");
@@ -112,6 +112,10 @@ b_io_fd b_open (char * filename, int flags)
 		return (-1);
 	}
 
+	fcbArray[returnFd].buf = buffer;
+	fcbArray[returnFd].index = 0;
+	fcbArray[returnFd].buflen = 0;
+	fcbArray[returnFd].access_mode = flags;
 
 	return (returnFd);						// all set
 }
