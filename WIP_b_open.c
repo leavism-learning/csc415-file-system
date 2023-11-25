@@ -24,6 +24,7 @@
 
 #define MAXFCBS 20
 #define B_CHUNK_SIZE 512
+#define INIT_FILE_LEN 16
 
 typedef struct b_fcb {
 	/** TODO add all the information you need in the file control block **/
@@ -92,24 +93,29 @@ b_io_fd b_open (char * filename, int flags)
 				free(trimmed_name);
 				return (-1);
 			}
-			// TODO I don't think pos is get_free_blocks(NUM_FILES). We may need to define an initial file block size, similar to INIT_DIR_LEN.
-			bfs_block_t pos = bfs_get_free_blocks(NUM_FILES);
+
+			bfs_block_t pos = bfs_get_free_blocks(INIT_FILE_LEN);
 			struct bfs_dir_entry new_dir_entry;
 			bfs_create_dir_entry(&new_dir_entry, trimmed_name, 0, pos, 1);
+
+			if (LBAwrite(new_dir_entry, INIT_FILE_LEN, pos) != INIT_FILE_LEN) {
+				fprintf(stderr, "Unable to LBAwrite pos %ld in b_opens.\n", pos);
+			}
 		}
 	}
 
-	// The rest is handling when the file does exist and the flags are set correctly
-	b_io_fd returnFd = b_getFCB();
+	// The rest of this code is handling when the file does exist
+	// and the flags are set correctly
 
-	// Handle getFCB errors
+	b_io_fd returnFd = b_getFCB();
+	// Handle b_getFCB errors
 	if (returnFd == -1) {
 			fprintf(stderr, "No available FCB.\n");
 			free(dir_entry);
 			return returnFd;
 	}
 
-	// Load file into fcbarray
+	// Load file into fcbArray
 	fcbArray[returnFd].file = malloc(sizeof(struct bfs_dir_entry));
 	if (fcbArray[returnFd].file == NULL) {
 		fprintf(stderr, "Failed to malloc for buffer.\n");
