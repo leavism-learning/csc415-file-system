@@ -28,7 +28,7 @@ void print_dir_entry(struct bfs_dir_entry *dentry)
 int write_current_vcb()
 {
 	if(LBAwrite(bfs_vcb, 1, 0) != 1) {
-		fprintf(stderr, "Error: Unable to write GDT to disk\n");
+		fprintf(stderr, "Error: Unable to write VCB to disk\n");
 		return 1; 
 	}
 	return 0;
