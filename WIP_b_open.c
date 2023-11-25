@@ -86,6 +86,16 @@ b_io_fd b_open (char * filename, int flags)
 		}
 		if (flags & O_CREAT) {
 			// TODO Handle when file doesn't doesn't exist and O_CREAT is set. Basically needs to actually create the file.
+			char* trimmed_name = get_filename_from_path(filename);
+			if (*trimmed_name == '\0') {
+				fprintf(stderr, "Filename from path is empty.\n");
+				free(trimmed_name);
+				return (-1);
+			}
+			// TODO I don't think pos is get_free_blocks(NUM_FILES). We may need to define an initial file block size, similar to INIT_DIR_LEN.
+			bfs_block_t pos = bfs_get_free_blocks(NUM_FILES);
+			struct bfs_dir_entry new_dir_entry;
+			bfs_create_dir_entry(&new_dir_entry, trimmed_name, 0, pos, 1);
 		}
 	}
 
