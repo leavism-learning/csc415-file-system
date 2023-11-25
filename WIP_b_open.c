@@ -69,6 +69,11 @@ b_io_fd b_open (char * filename, int flags)
 	if (startup == 0) 
 		b_init();
 
+	if (fs_isDir()) {
+		fprintf(stderr, "Cannot b_open %s as a file because it is a directory.", filename);
+		return (-1);
+	}
+
 	struct bfs_dir_entry* dir_entry = malloc(sizeof(struct bfs_dir_entry));
 
 	// Handle when file doesn't exist
