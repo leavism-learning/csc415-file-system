@@ -126,6 +126,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 
 		// create root dir
 		struct bfs_dir_entry* dir_arr = malloc(bfs_vcb->block_size * bfs_vcb->root_len);
+		LBAread(dir_arr, bfs_vcb->root_len, bfs_vcb->root_loc);
 
 		struct bfs_dir_entry root_here;
 		bfs_create_dir_entry(&dir_arr[0], ".", bfs_vcb->root_len * bfs_vcb->block_size, bfs_vcb->root_loc, 0);

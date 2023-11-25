@@ -42,6 +42,7 @@ int bfs_create_directory(bfs_block_t pos, bfs_block_t parent)
 	}
 
 	struct bfs_dir_entry* buffer = malloc(bfs_vcb->block_size * INIT_DIR_LEN);
+
 	if (buffer == NULL) {
 		perror("malloc in bfs_create_directory");
 		return 1;
@@ -54,17 +55,19 @@ int bfs_create_directory(bfs_block_t pos, bfs_block_t parent)
 
 	// create . and .. directory entries
 	struct bfs_dir_entry here;
-	bfs_create_dir_entry(&here, ".", bfs_vcb->block_size * INIT_DIR_LEN, pos, 0);
 	struct bfs_dir_entry parent_dentry;
+	bfs_create_dir_entry(&here, ".", bfs_vcb->block_size * INIT_DIR_LEN, pos, 0);
 	bfs_create_dir_entry(&parent_dentry, "..", bfs_vcb->block_size * parent_dir[0].len, parent_dir[0].location, 0);
 
 	struct bfs_dir_entry nulldir;
 	nulldir.name[0] = '\0';
 
+	/*
 	buffer[0] = here;
 	buffer[1] = parent_dir[0];
 	buffer[2] = nulldir;
 
+	*/
 	if (LBAwrite(buffer, INIT_DIR_LEN, pos) != INIT_DIR_LEN) {
 		fprintf(stderr, "Unable to LBAwrite pos %ld in bfs_create_dir\n", pos);
 	}
@@ -231,12 +234,10 @@ struct fs_diriteminfo* fs_readdir(fdDir* dirp)
 		return NULL;
 	}
 
-	// populate  fsdiriteminfo struct
 	dirp->di->d_reclen = sizeof(struct fs_diriteminfo);
 	dirp->di->fileType = diritem.file_type;
 	strcpy(dirp->di->d_name, diritem.name);
 	return dirp->di;
-
 }
 
 fdDir* fs_opendir(const char* pathname) 

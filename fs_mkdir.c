@@ -51,6 +51,7 @@ int fs_mkdir(const char *pathname, mode_t mode)
 
 	bfs_block_t pos = bfs_get_free_blocks(INIT_DIR_LEN);
 	printf("pos: %ld\n", pos);
+	printf("name: %s\n", trimmed_name);
 	bfs_create_dir_entry(&dentry, trimmed_name, INIT_DIR_LEN, pos, 0);
 
 	// directory needs 2 things: directory entry array (initially has ., .. and \0)
@@ -59,19 +60,25 @@ int fs_mkdir(const char *pathname, mode_t mode)
 		fprintf(stderr, "Unable to create dir entry for %s\n", pathname);
 	}
 
-	int i = 0;
 	struct bfs_dir_entry* parent_dir = malloc(bfs_vcb->block_size * parent_entry.len);
 	if (LBAread(parent_dir, parent_entry.len, parent_entry.location) != parent_entry.len) {
 		fprintf(stderr, "Error reading from parent dir %ld", parent_entry.location);
 		free(parent_dir);
 		return 1;
 	}
+
+	int i = 0;
 	struct bfs_dir_entry d = parent_dir[i];
 	while (d.name[0] != '\0') {
-		d = parent_dir[i++];
+		i++;
+		d = parent_dir[i];
 	}
-	parent_dir[i+1] = parent_dir[i];
+	
+	printf("size is %ld\n",sizeof(struct bfs_dir_entry));
+	printf("putting entry %s at pos %d\n", dentry.name, i);
+	struct bfs_dir_entry bde;
 	parent_dir[i] = dentry;
+	parent_dir[i+1] = d;
 
 	if (LBAwrite(parent_dir, parent_dir->len, parent_dir->location) != parent_dir->len) {
 		fprintf(stderr, "Error writing parent_dir dir %s to location %ld\n", parent_dir->name, parent_dir->location);
