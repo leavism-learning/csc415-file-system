@@ -133,13 +133,13 @@ int bfs_get_free_blocks(uint32_t num_blocks)
 		// bitmap and find the first available block
 		if (block_group->free_blocks_count >= num_blocks) {
 
-			uint8_t *bitmap = malloc(bfs_vcb->block_size);
+			uint8_t* bitmap = malloc(bfs_vcb->block_size);
 			if (bitmap == NULL) {
 				perror("malloc");
 				return -1;
 			}
 
-			if(LBAread(bitmap, 1, block_group->bitmap_location) != 1) {
+			if (LBAread(bitmap, 1, block_group->bitmap_location) != 1) {
 				fprintf(stderr, "Unable to LBAread bitmap\n");
 				free(bitmap);
 				return -1;
@@ -149,12 +149,12 @@ int bfs_get_free_blocks(uint32_t num_blocks)
 			int b_idx = bitmap_find_avail_bits(bitmap, bfs_vcb->block_size, num_blocks);
 
 			// set blocks as used
-			for(int i = 0; i < num_blocks; i++) {
+			for (int i = 0; i < num_blocks; i++) {
 				block_bit_set(bitmap, b_idx + i);
 			}
 			block_group->free_blocks_count -= num_blocks;
 
-			if(LBAwrite(bitmap, 1, block_group->bitmap_location) != 1) {
+			if (LBAwrite(bitmap, 1, block_group->bitmap_location) != 1) {
 				fprintf(stderr, "Unable to LBAwrite bitmap\n");
 				free(bitmap);
 				return -1;
