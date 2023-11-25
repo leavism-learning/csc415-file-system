@@ -81,20 +81,17 @@ b_io_fd b_open (char * filename, int flags)
 		free(dir_entry);
 		return (-1);
 	}
-	
-	struct bfs_dir_entry* directory_array = malloc(bfs_vcb->block_size * dir_entry->len);
-	if (LBAread(directory_array, dir_entry->len, dir_entry->location) != dir_entry->len) {
-		fprintf(stderr, "Error reading directory at %llu\n", dir_entry->location);
-		return NULL;
-	}
-
-	// TODO Probaby LBAread to fill directory_array with the actual contents
-
 
 	b_io_fd returnFd = b_getFCB();
-	// TODO Handle getFCB errors
 
-	// TODO Load file into directory_array
+	// TODO Handle getFCB errors
+	if (returnFd == -1) {
+			fprintf(stderr, "No available FCB.\n");
+			free(dir_entry);
+			return returnFd;
+	}
+
+	// TODO Load file into fcbarray
 
 	// TODO Initialize the b_fcb struct
 
