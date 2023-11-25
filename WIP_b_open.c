@@ -69,39 +69,29 @@ b_io_fd b_open (char * filename, int flags)
 	if (startup == 0) 
 		b_init();
 
-	char* filename = get_filename_from_path(filename);
-	if (*filename == '\0') {
-		fprintf(stderr, "Filename from path is empty.\n");
-		free(filename);
-		return (-1);
-	}
-
 	struct bfs_dir_entry* dir_entry = malloc(sizeof(struct bfs_dir_entry));
-	if (get_file_from_path(dir_entry, (char *)filename)) {
+	if (get_file_from_path(dir_entry, filename)) {
 		if (!(flags & O_CREAT)) {
 			fprintf(stderr, "Cannot b_open %s. File does not exist and create flag has not been set.\n", filename);
-			free(dir_entry);
-			return (-1);
+		} else if (flags & O_RDONLY) {
+			fprintf(stderr, "Unable to get file from path %s with read only flag.\n", filename);
+		} else {
+			fprintf(stderr, "Unable to get file from path: %s\n", filename);
 		}
-
-		fprintf(stderr, "Unable to get file from path: %s\n", filename);
 		free(dir_entry);
 		return (-1);
 	}
-
-
-
-
+	
 	struct bfs_dir_entry* directory_array = malloc(bfs_vcb->block_size * dir_entry->len);
 	if (LBAread(directory_array, dir_entry->len, dir_entry->location) != dir_entry->len) {
-		fprintf(stderr, "Error reading directory at %ld\n", dir_entry->location);
+		fprintf(stderr, "Error reading directory at %llu\n", dir_entry->location);
 		return NULL;
 	}
 
 	// TODO Probaby LBAread to fill directory_array with the actual contents
 
 
-	b_io_fd returnFd = b_getFCB();			
+	b_io_fd returnFd = b_getFCB();
 	// TODO Handle getFCB errors
 
 	// TODO Load file into directory_array
