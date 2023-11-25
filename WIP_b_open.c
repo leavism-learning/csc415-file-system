@@ -70,28 +70,33 @@ b_io_fd b_open (char * filename, int flags)
 		b_init();
 
 	struct bfs_dir_entry* dir_entry = malloc(sizeof(struct bfs_dir_entry));
+
+	// Handle when file doesn't exist
 	if (get_file_from_path(dir_entry, filename)) {
-		if (!(flags & O_CREAT)) {
+		if (!(flags & O_CREAT)) { // When file doesn't exist and O_CREAT isn't set
 			fprintf(stderr, "Cannot b_open %s. File does not exist and create flag has not been set.\n", filename);
-		} else if (flags & O_RDONLY) {
-			fprintf(stderr, "Unable to get file from path %s with read only flag.\n", filename);
-		} else {
-			fprintf(stderr, "Unable to get file from path: %s\n", filename);
+
+			// TODO Handle when file doesn't doesn't exist and O_CREAT is set. Basically needs to actually create the file.
+		} else if (flags & O_RDONLY) { // When file doesn't exist but O_RDONLY was set
+			fprintf(stderr, "File does not exist to read.\n", filename);
+		} else { // Every other possible error
+			fprintf(stderr, "Failed to get file from path: %s\n", filename);
 		}
 		free(dir_entry);
 		return (-1);
 	}
 
+	// The rest is handling when the file does exist and the flags are set correctly
 	b_io_fd returnFd = b_getFCB();
 
-	// TODO Handle getFCB errors
+	// Handle getFCB errors
 	if (returnFd == -1) {
 			fprintf(stderr, "No available FCB.\n");
 			free(dir_entry);
 			return returnFd;
 	}
 
-	// TODO Load file into fcbarray
+	// Load file into fcbarray
 	fcbArray[returnFd].fi = malloc(sizeof(struct bfs_dir_entry));
 	if (fcbArray[returnFd].fi == NULL) {
 		fprintf(stderr, "Failed to malloc for buffer.\n");
@@ -99,7 +104,16 @@ b_io_fd b_open (char * filename, int flags)
 		return (-1);
 	}
 
+	memcpy(fcbArray[returnFd].fi, dir_entry, sizeof(bfs_dir_entry));
+
 	// TODO Initialize the b_fcb struct
+	char* buffer = malloc(bfs_vcb->block_size);
+	if (buffer == NULL) {
+		fprintf(stderr, "Failed to malloc for buffer.\n");
+		free(dir_entry);
+		return (-1);
+	}
+
 
 	return (returnFd);						// all set
 }
