@@ -92,6 +92,12 @@ b_io_fd b_open (char * filename, int flags)
 	}
 
 	// TODO Load file into fcbarray
+	fcbArray[returnFd].fi = malloc(sizeof(struct bfs_dir_entry));
+	if (fcbArray[returnFd].fi == NULL) {
+		fprintf(stderr, "Failed to malloc for buffer.\n");
+		free(dir_entry);
+		return (-1);
+	}
 
 	// TODO Initialize the b_fcb struct
 
