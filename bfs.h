@@ -99,10 +99,27 @@ int block_bit_set(uint8_t *block, uint8_t position);
  */
 int idx_to_bnum(int index, int block_group);
 
+/**
+ * @brief Free n consecutive blocks starting from block_num.
+ *
+ * @param start The block number from which to start freeing consecutive blocks.
+ * @param count The number of consecutive blocks to be freed.
+ *
+ * @return
+ *     - 0: The function executed successfully, and the specified blocks were freed.
+ *     - 1: An error occurred during execution, and the specified blocks could not be freed.
+ */
 int bfs_clear_blocks(bfs_block_t start, uint32_t count);
 
 void bitmap_clear_n(uint8_t* bitmap, uint32_t start, uint32_t count);
 
+/**
+ * @brief Get a free block from the Block File System (BFS).
+ *
+ * @return
+ *     - The block number of the allocated block if successful.
+ *     - -1 if an error occurs during the allocation process or no free blocks are available.
+ */
 int bfs_get_free_blocks(uint32_t num_blocks);
 
 /**************************************************************
