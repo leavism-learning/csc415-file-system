@@ -97,6 +97,9 @@ b_io_fd b_open(char* filename, int flags)
 
 			if (LBAwrite(target_file, INIT_FILE_LEN, pos) != INIT_FILE_LEN) {
 				fprintf(stderr, "Unable to LBAwrite pos %llu in b_open.\n", pos);
+				free(trimmed_name);
+				free(target_file);
+				return (-1);
 			}
 		} else {
 			fprintf(stderr,
