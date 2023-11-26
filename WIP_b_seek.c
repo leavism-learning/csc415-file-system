@@ -115,8 +115,31 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 		return (-1); 					//invalid file descriptor
 	}
 
+    // to checks if the file exists
+	if (fcbArray[fd].file == NULL) {
+		return (-1); 			//empty fd
+	}
+
+    switch(whence)
+    {
+        case 0 : 
+            fcbArray[fd].index = offset;        
+            break;
+        case 1 : 
+            fcbArray[fd].index += offset;
+            break;
+        case 2 : 
+            // need a file size field in b_fcb
+            //fcbArray[fd].index = fcbArray[fd].buflen + offset;
+            break;
+        default:
+            break;
+    }
+
+    return fcbArray[fd].index;
+
     //to return the updated start position in the file
-	return (0); //Change this
+	//return (0); //Change this
 }
 
 // Interface to write function	
