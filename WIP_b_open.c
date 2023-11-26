@@ -77,7 +77,10 @@ b_io_fd b_open(char *filename, int flags)
 	}
 
 	struct bfs_dir_entry *target_file = malloc(sizeof(struct bfs_dir_entry));
-
+	if (target_file == NULL) {
+		fprintf(stderr, "Failed to allocate memory for bfs_dir_entry.\n");
+		return (-1);
+	}
 	// Handle when file doesn't exist
 	if (get_file_from_path(target_file, filename)) {
 		// When file doesn't exist and O_CREAT isn't set
@@ -95,14 +98,15 @@ b_io_fd b_open(char *filename, int flags)
 			if (*trimmed_name == '\0') {
 				fprintf(stderr, "Filename from path is empty.\n");
 				free(trimmed_name);
+				free(target_file);
 				return (-1);
 			}
 
 			bfs_block_t pos = bfs_get_free_blocks(INIT_FILE_LEN);
-			bfs_create_dir_entry(&target_file, trimmed_name, 0, pos, 1);
+			bfs_create_dir_entry(target_file, trimmed_name, 0, pos, 1);
 
 			if (LBAwrite(target_file, INIT_FILE_LEN, pos) != INIT_FILE_LEN) {
-				fprintf(stderr, "Unable to LBAwrite pos %ld in b_open.\n", pos);
+				fprintf(stderr, "Unable to LBAwrite pos %llu in b_open.\n", pos);
 			}
 		}
 	}
