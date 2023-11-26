@@ -82,17 +82,8 @@ b_io_fd b_open(char* filename, int flags)
 	}
 	// Handle when file doesn't exist
 	if (get_file_from_path(target_file, filename)) {
-		// When file doesn't exist and O_CREAT isn't set
-		if (!(flags & O_CREAT)) {
-			fprintf(stderr,
-							"Cannot b_open %s. File does not exist and create flag has not been set.\n",
-							filename);
-			free(target_file);
-			return (-1);
-		}
+		// When file doesn't exist and O_CREAT is set
 		if (flags & O_CREAT) {
-			// TODO Handle when file doesn't doesn't exist and O_CREAT is set.
-			// Basically needs to actually create the file.
 			char* trimmed_name = get_filename_from_path(filename);
 			if (*trimmed_name == '\0') {
 				fprintf(stderr, "Filename from path is empty.\n");
@@ -106,7 +97,16 @@ b_io_fd b_open(char* filename, int flags)
 
 			if (LBAwrite(target_file, INIT_FILE_LEN, pos) != INIT_FILE_LEN) {
 				fprintf(stderr, "Unable to LBAwrite pos %llu in b_open.\n", pos);
+				free(trimmed_name);
+				free(target_file);
+				return (-1);
 			}
+		} else {
+			fprintf(stderr,
+							"Cannot b_open %s. File does not exist and create flag has not been set.\n",
+							filename);
+			free(target_file);
+			return (-1);
 		}
 	}
 
