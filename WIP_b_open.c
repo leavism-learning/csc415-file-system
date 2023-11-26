@@ -71,7 +71,7 @@ b_io_fd b_open(char *filename, int flags)
 	if (startup == 0)
 		b_init();
 
-	if (fs_isDir()) {
+	if (fs_isDir(filename)) {
 		fprintf(stderr, "Cannot b_open %s because it is a directory.", filename);
 		return (-1);
 	}
