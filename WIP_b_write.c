@@ -173,6 +173,18 @@ int b_write (b_io_fd fd, char * buffer, int count)
 		return (-1); 					//invalid file descriptor
 	}
 
+	// Check for write flag
+	if (!(fcbArray[fd].access_mode & O_RDWR) && !(fcbArray[fd].access_mode & O_WRONLY)) {
+		fprintf(stderr, "Failed to b_write. Write flag was not set.");
+		return (-1);
+	}
+
+	// Check that the file exists
+	if (fcbArray[fd].file == NULL) {
+		fprintf(stderr, "File does not exist to write to.");
+		return (-1);
+	}
+
 	return (0); //Change this
 }
 
