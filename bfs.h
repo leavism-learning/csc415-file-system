@@ -105,12 +105,17 @@ int idx_to_bnum(int index, int block_group);
  * @param start The block number from which to start freeing consecutive blocks.
  * @param count The number of consecutive blocks to be freed.
  *
- * @return
- *     - 0: The function executed successfully, and the specified blocks were freed.
- *     - 1: An error occurred during execution, and the specified blocks could not be freed.
+ * @return 0 on success, -1 on failure.
  */
 int bfs_clear_blocks(bfs_block_t start, uint32_t count);
 
+/**
+ * @brief Clear a range of bits in a bitmap.
+ *
+ * @param bitmap A pointer to the bitmap to be modified.
+ * @param start The starting bit index to begin clearing (inclusive).
+ * @param count The number of bits to clear in the range.
+ */
 void bitmap_clear_n(uint8_t* bitmap, uint32_t start, uint32_t count);
 
 /**
@@ -128,8 +133,12 @@ int bfs_get_free_blocks(uint32_t num_blocks);
  **************************************************************/
 
 /**
+ * @brief Create a directory at the specified position.
  *
+ * @param pos The block number where the new directory should be created.
+ * @param parent The block number of the parent directory.
  *
+ * @return 0 on sucess, 1 on failure.
  */
 int bfs_create_directory(bfs_block_t pos, bfs_block_t parent);
 
@@ -177,6 +186,16 @@ void bfs_create_here(struct bfs_dir_entry *here, int lba_position);
  */
 int get_file_from_path(struct bfs_dir_entry* target, char* path);
 
+/**
+ * @brief Find a file with a given name in a specified directory within the Block File System (BFS).
+ *
+ * This function searches for a file with the specified name within a given directory in the BFS.
+ *
+ * @param filename The name of the file to search for.
+ * @param directory A pointer to the directory structure (array of directory entries) to search in.
+ *
+ * @return The index of the found file in the directory (0 based index). If failed, it will return -1.
+ */
 int find_file(char* filename, struct bfs_dir_entry* directory);
 
 /**************************************************************
