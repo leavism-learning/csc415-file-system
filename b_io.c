@@ -159,7 +159,36 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 		return (-1); 					//invalid file descriptor
 	}
 
-	return (0); //Change this
+    // to checks if the file exists
+	if (fcbArray[fd].file == NULL) {
+		return (-1); 			//empty fd
+	}
+
+    // for case of going beyond the start of file
+    // sets to 0 [start of file]
+    if(offset < 0 && fcbArray[fd].index + offset < 0)
+    {
+        fcbArray[fd].index = 0;
+        return 0;
+    }
+
+    switch(whence)
+    {
+        case 0 : 
+            fcbArray[fd].index = offset;     // For SEEK_SET   
+            break;
+        case 1 : 
+            fcbArray[fd].index += offset;   // For SEEK_CUR
+            break;
+        case 2 : 
+            fcbArray[fd].index = fcbArray[fd].file->size + offset;    // For SEEK_END
+            break;
+        default:
+            break;
+    }
+
+    // returns the new start point
+    return fcbArray[fd].index;
 }
 
 // Interface to write function	
