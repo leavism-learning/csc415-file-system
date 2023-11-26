@@ -212,5 +212,12 @@ int b_read (b_io_fd fd, char * buffer, int count)
 // Interface to Close the file	
 int b_close (b_io_fd fd)
 {
+	// TODO Write remaining content from fd's buffer onto disk
+
+	// TODO Calculate the actual amount of blocks the file used. It might've not used all 16 blocks.
+
+	// TODO memcpy changes from the fcb dir entry into the directory array itsels
+
+	// TODO free the fd from memory
 	return 0;
 }
