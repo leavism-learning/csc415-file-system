@@ -119,7 +119,7 @@ int bfs_clear_blocks(bfs_block_t start, uint32_t count);
 void bitmap_clear_n(uint8_t* bitmap, uint32_t start, uint32_t count);
 
 /**
- * @brief Get a free block from the Block File System (BFS).
+ * @brief Get a free block from the bfs.
  *
  * @return
  *     - The block number of the allocated block if successful.
@@ -187,7 +187,7 @@ void bfs_create_here(struct bfs_dir_entry *here, int lba_position);
 int get_file_from_path(struct bfs_dir_entry* target, char* path);
 
 /**
- * @brief Find a file with a given name in a specified directory within the Block File System (BFS).
+ * @brief Find a file with a given name in a specified directory within the bfs.
  *
  * This function searches for a file with the specified name within a given directory in the BFS.
  *
@@ -201,14 +201,42 @@ int find_file(char* filename, struct bfs_dir_entry* directory);
 /**************************************************************
  * bfs_file.c
  * Functions for creating & modifying BFS files.
- * // TODO: Not clear what these should be yet. Need more planning.
  **************************************************************/
 
-// directory entry (inode) constructor
+/**
+ * @brief Create a directory entry with the given name, size, and attributes.
+ *
+ * This function is responsible for initializing a directory entry structure with the specified
+ * name, size, position, file type, and timestamps.
+ *
+ * @param dir_entry A pointer to the directory entry structure to be initialized.
+ * @param name The name of the directory entry.
+ * @param size The size of the directory entry (in bytes).
+ * @param pos The position (block number) of the directory entry.
+ * @param type The type of the directory entry (e.g., file or directory).
+ *
+ * @return 0 on success.
+ */
 int bfs_create_dir_entry(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, uint64_t pos, uint8_t type);
-
+/**
+ * @brief Create an extent table for a given buffer in the bfs.
+ *
+ * @param extent_block A pointer to the buffer where the extent table will be created or updated.
+ *                    If NULL, a new buffer is allocated; otherwise, the existing buffer is resized.
+ * @param size The size of the buffer (in bytes) for which the extent table is being created.
+ *
+ * @return 0 on success. 1 on failure.
+ */
 int bfs_create_extent(void* extent_block, int size);
 
+/**
+ * @brief Read data from an extent in the bfs and store it in a buffer.
+ *
+ * @param data A pointer to the buffer where the data will be stored. If NULL, a new buffer is allocated.
+ * @param block_num The block number of the extent to be read.
+ *
+ * @return 0 on success. 1 on failure.
+ */
 int bfs_read_extent(void* buffer, bfs_block_t block_num);
 
 /**************************************************************
