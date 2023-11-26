@@ -126,11 +126,10 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
             fcbArray[fd].index = offset;     // For SEEK_SET   
             break;
         case 1 : 
-            fcbArray[fd].index += offset;   // For SEEK_CURR
+            fcbArray[fd].index += offset;   // For SEEK_CUR
             break;
         case 2 : 
-            // need a file size field in b_fcb
-            //fcbArray[fd].index = fcbArray[fd].buflen + offset;    // For SEEK_END
+            fcbArray[fd].index = fcbArray[fd].file->size + offset;    // For SEEK_END
             break;
         default:
             break;
