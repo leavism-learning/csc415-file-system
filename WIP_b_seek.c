@@ -120,6 +120,14 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 		return (-1); 			//empty fd
 	}
 
+    // for case of going beyond the start of file
+    // sets to 0 [start of file]
+    if(offset < 0 && fcbArray[fd].index + offset < 0)
+    {
+        fcbArray[fd].index = 0;
+        return 0;
+    }
+
     switch(whence)
     {
         case 0 : 
