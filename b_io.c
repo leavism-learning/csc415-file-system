@@ -63,44 +63,87 @@ b_io_fd b_getFCB ()
 // Interface to open a buffered file
 // Modification of interface for this assignment, flags match the Linux flags for open
 // O_RDONLY, O_WRONLY, or O_RDWR
-b_io_fd b_open (char * filename, int flags)
+b_io_fd b_open(char* filename, int flags)
 {
-
-	//Initialize our system
-	if (startup == 0) 
+	// Initialize our system
+	if (startup == 0)
 		b_init();
 
-	struct bfs_dir_entry* dir_entry = malloc(sizeof(struct bfs_dir_entry));
-	if (get_file_from_path(dir_entry, (char *)filename)) {
-		fprintf(stderr, "Unable to get file from path: %s\n", filename);
+	if (fs_isDir()) {
+		fprintf(stderr, "Cannot b_open %s because it is a directory.", filename);
 		return (-1);
 	}
 
-	struct bfs_dir_entry* directory_array = malloc(bfs_vcb->block_size * dir_entry->len);
+	struct bfs_dir_entry* target_file = malloc(sizeof(struct bfs_dir_entry));
+	if (target_file == NULL) {
+		fprintf(stderr, "Failed to allocate memory for bfs_dir_entry.\n");
+		return (-1);
+	}
+	// Handle when file doesn't exist
+	if (get_file_from_path(target_file, filename)) {
+		// When file doesn't exist and O_CREAT isn't set
+		if (!(flags & O_CREAT)) {
+			fprintf(stderr,
+							"Cannot b_open %s. File does not exist and create flag has not been set.\n",
+							filename);
+			free(target_file);
+			return (-1);
+		}
+		if (flags & O_CREAT) {
+			// TODO Handle when file doesn't doesn't exist and O_CREAT is set.
+			// Basically needs to actually create the file.
+			char* trimmed_name = get_filename_from_path(filename);
+			if (*trimmed_name == '\0') {
+				fprintf(stderr, "Filename from path is empty.\n");
+				free(trimmed_name);
+				free(target_file);
+				return (-1);
+			}
 
+			bfs_block_t pos = bfs_get_free_blocks(INIT_FILE_LEN);
+			bfs_create_dir_entry(target_file, trimmed_name, 0, pos, 1);
 
-	char* filename = get_filename_from_path(filename);
-	if (*filename == '\0') {
-		fprintf(stderr, "Filename from path is empty.\n");
-		free(filename);
+			if (LBAwrite(target_file, INIT_FILE_LEN, pos) != INIT_FILE_LEN) {
+				fprintf(stderr, "Unable to LBAwrite pos %llu in b_open.\n", pos);
+			}
+		}
+	}
+
+	// The rest of this code is handling when the file does exist
+	// and the flags are set correctly
+
+	b_io_fd returnFd = b_getFCB();
+	// Handle b_getFCB errors
+	if (returnFd == -1) {
+		fprintf(stderr, "No available FCB.\n");
+		free(target_file);
+		return returnFd;
+	}
+
+	// Load file into fcbArray
+	fcbArray[returnFd].file = malloc(sizeof(struct bfs_dir_entry));
+	if (fcbArray[returnFd].file == NULL) {
+		fprintf(stderr, "Failed to malloc for buffer.\n");
+		free(target_file);
 		return (-1);
 	}
 
-	// TODO: Now that we have the directory entry and extracted the
-	// file name, we can try to find the specific DE that is our file.
-	// Notes:
-	// 	- The last directory entry in the array is marked with \n says Griffin
-	// 	- Ask Griffin how to traverse the directory array of dir entries
-	// 	- Then find the directory entry that has our filename
+	memcpy(fcbArray[returnFd].file, target_file, sizeof(struct bfs_dir_entry));
 
+	// Initialize the b_fcb struct
+	char* buffer = malloc(bfs_vcb->block_size);
+	if (buffer == NULL) {
+		fprintf(stderr, "Failed to malloc for buffer.\n");
+		free(target_file);
+		return (-1);
+	}
 
-	b_io_fd returnFd;
+	fcbArray[returnFd].buf = buffer;
+	fcbArray[returnFd].index = 0;
+	fcbArray[returnFd].buflen = 0;
+	fcbArray[returnFd].access_mode = flags;
 
-	// get our own file descriptor
-	returnFd = b_getFCB();			
-	// check for error - all used FCB's
-
-	return (returnFd);						// all set
+	return (returnFd); // all set
 }
 
 
