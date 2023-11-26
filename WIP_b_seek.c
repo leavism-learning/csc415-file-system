@@ -123,19 +123,20 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
     switch(whence)
     {
         case 0 : 
-            fcbArray[fd].index = offset;        
+            fcbArray[fd].index = offset;     // For SEEK_SET   
             break;
         case 1 : 
-            fcbArray[fd].index += offset;
+            fcbArray[fd].index += offset;   // For SEEK_CURR
             break;
         case 2 : 
             // need a file size field in b_fcb
-            //fcbArray[fd].index = fcbArray[fd].buflen + offset;
+            //fcbArray[fd].index = fcbArray[fd].buflen + offset;    // For SEEK_END
             break;
         default:
             break;
     }
 
+    // returns the new start point
     return fcbArray[fd].index;
 
     //to return the updated start position in the file
