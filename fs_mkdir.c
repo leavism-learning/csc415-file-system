@@ -52,7 +52,7 @@ int fs_mkdir(const char *pathname, mode_t mode)
 	bfs_block_t pos = bfs_get_free_blocks(INIT_DIR_LEN);
 	printf("pos: %ld\n", pos);
 	printf("name: %s\n", trimmed_name);
-	bfs_create_dir_entry(&dentry, trimmed_name, INIT_DIR_LEN, pos, 0);
+	bfs_create_dir_entry(&dentry, trimmed_name, bfs_vcb->block_size * INIT_DIR_LEN, pos, 0);
 
 	// directory needs 2 things: directory entry array (initially has ., .. and \0)
 	printf("parent dir loc: %ld\n", parent_entry.location);
@@ -74,9 +74,6 @@ int fs_mkdir(const char *pathname, mode_t mode)
 		d = parent_dir[i];
 	}
 	
-	printf("size is %ld\n",sizeof(struct bfs_dir_entry));
-	printf("putting entry %s at pos %d\n", dentry.name, i);
-	struct bfs_dir_entry bde;
 	parent_dir[i] = dentry;
 	parent_dir[i+1] = d;
 

@@ -62,12 +62,10 @@ int bfs_create_directory(bfs_block_t pos, bfs_block_t parent)
 	struct bfs_dir_entry nulldir;
 	nulldir.name[0] = '\0';
 
-	/*
 	buffer[0] = here;
-	buffer[1] = parent_dir[0];
+	buffer[1] = parent_dentry;
 	buffer[2] = nulldir;
 
-	*/
 	if (LBAwrite(buffer, INIT_DIR_LEN, pos) != INIT_DIR_LEN) {
 		fprintf(stderr, "Unable to LBAwrite pos %ld in bfs_create_dir\n", pos);
 	}
@@ -83,11 +81,17 @@ char* fs_getcwd(char* pathname, size_t size)
 // linux chdir
 int fs_setcwd(char* pathname)
 {
+	char* true_path = expand_pathname(pathname);
+	printf("true path is %s\n", true_path);
 	struct bfs_dir_entry file;
 	if (get_file_from_path(&file, pathname)) {
-		fprintf(stderr, "Unable to get file from path %s\n", pathname);
 		return 1;
 	}
+
+	free(bfs_path);
+	bfs_path = strdup(true_path);
+
+	printf("got file %s with len %d\n", file.name, file.len);
 
 	int b = bytes_to_blocks(file.size);
 	bfs_cwd = realloc(bfs_cwd, b * bfs_vcb->block_size);
@@ -119,24 +123,64 @@ int fs_isDir(char* pathname)
 	return !file.file_type;
 }
 
+// given a string, return a path 
+char* expand_pathname(char* in)
+{
+	if (strlen(in) < 1) {
+		return NULL;
+	}
+
+    char* input = strdup(in);  // Duplicate the input to avoid modifying the original
+    char* result;  // Resulting expanded path
+
+    if (input[0] == '/') {
+        // Absolute path, start from root
+        result = strdup("/");
+    } else {
+        // Relative path, start from current working directory
+        result = strdup(bfs_path);
+    }
+
+    // Tokenize the input path
+    char* token = strtok(input, "/");
+    while (token != NULL) {
+        if (strcmp(token, "..") == 0) {
+            // Move up one level (parent directory)
+            char* last_slash = strrchr(result, '/');
+            if (last_slash != NULL) {
+                *last_slash = '\0';  // Remove the last component
+            }
+        } else if (strcmp(token, ".") != 0) {
+			// Skip any "." characters in path
+            // Concatenate other components to the result
+            if (strcmp(result, "/") != 0) {
+                // Add '/' only if the current result is not the root directory
+                result = realloc(result, strlen(result) + strlen(token) + 2);
+                strcat(result, "/");
+            }
+            strcat(result, token);
+        }
+
+        token = strtok(NULL, "/");
+	}
+	
+	// empty string is root
+	if (strlen(result) == 0) {
+		free(result);
+		result = strdup("/");
+	}
+
+    // Clean up dynamically allocated memory for the original input
+    free(input);
+
+    return result;
+}
+
 // return directory entry from file path
 int get_file_from_path(struct bfs_dir_entry* target, char* path)
 {
 	// Duplicate provided path to avoid modifying original path
-	char* filepath = strdup(path);
-
-	// Handles reading current directory from disk
-	struct bfs_dir_entry* current_dir;
-
-	if (filepath[0] == '/') {
-		// Absolute path, start from root
-		current_dir = malloc(bfs_vcb->block_size * bfs_vcb->root_len);
-		LBAread(current_dir, bfs_vcb->root_len, bfs_vcb->root_loc);
-	} else {
-		// Relative path, start from CWD
-		current_dir = malloc(bfs_cwd[0].size);
-		memcpy(current_dir,&bfs_cwd[0],bfs_cwd[0].size);
-	}
+	char* filepath = expand_pathname(path);
 
 	// Get array of strings representing each entry in the filename ex.
 	// "/home/student/" -> { "/", "home", "student"}
@@ -144,25 +188,23 @@ int get_file_from_path(struct bfs_dir_entry* target, char* path)
 	char* tok = strtok(filepath, "/");
 	int tok_count = 0;
 
-	// If tok == null, path is just root
 	if (tok == NULL) {
-		struct bfs_dir_entry* root = malloc(bfs_vcb->block_size * bfs_vcb->root_len);
-		if (LBAread(root, bfs_vcb->root_len, bfs_vcb->root_loc) != bfs_vcb->root_len) {
-			fprintf(stderr, "Unable to LBAread %ld in get_file_from_path\n", bfs_vcb->root_loc);
-			return 1;
-		}
-		// Copy root directory entry to target
-		memcpy(target, root, sizeof(struct bfs_dir_entry));
+		struct bfs_dir_entry* root = malloc(bfs_vcb->block_size);
+		LBAread(root, 1, bfs_vcb->root_loc);
+		memcpy(target, &root[0], sizeof(struct bfs_dir_entry));
 		free(root);
 		free(filepath);
 		return 0;
 	}
 
-	// Tokenize rest of the path
 	while (tok != NULL) {
 		tokens[tok_count++] = tok;
 		tok = strtok(NULL, "/");
 	}
+
+	// start at root
+	struct bfs_dir_entry* current_dir = malloc(bfs_vcb->root_len * bfs_vcb->block_size);
+	LBAread(current_dir, bfs_vcb->root_len, bfs_vcb->root_loc);
 
 	// Navigate to penultimate token
 	for( int i = 0; i < tok_count - 1; i++) {
@@ -177,9 +219,8 @@ int get_file_from_path(struct bfs_dir_entry* target, char* path)
 		
 		struct bfs_dir_entry target_dir = current_dir[i];
 
-
-		if (LBAread(current_dir, bytes_to_blocks(target_dir.size), 
-			  target_dir.location)) {
+		current_dir = realloc(current_dir, target_dir.size);
+		if (LBAread(current_dir, target_dir.len, target_dir.location)) {
 			fprintf(stderr, "LBAread error in get_file_from_filepath\n");
 			free(filepath);
 			return 1;
@@ -189,7 +230,6 @@ int get_file_from_path(struct bfs_dir_entry* target, char* path)
 	// Find the final file/directory in the path
 	int i = find_file(tokens[tok_count - 1], current_dir);
 	if (i == -1) {
-		fprintf(stderr, "Unable to find file %s\n", tokens[tok_count - 1]);
 		free(filepath);
 		return 1;
 	}
@@ -244,7 +284,6 @@ fdDir* fs_opendir(const char* pathname)
 {
 	struct bfs_dir_entry* dir_entry = malloc(sizeof(struct bfs_dir_entry));
 	if (get_file_from_path(dir_entry, (char *)pathname)) {
-		fprintf(stderr, "Unable to get file from path: %s\n", pathname);
 		return NULL;
 	}
 

@@ -25,7 +25,7 @@
 struct vcb_s* bfs_vcb;
 struct block_group_desc* bfs_gdt;
 struct bfs_dir_entry* bfs_cwd;
-char* bfs_path;
+char* bfs_path = NULL;
 
 int is_valid_volname(char *name);
 void print_uuid(uint8_t *uuid);
@@ -65,7 +65,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 			exitFileSystem();
 		}
 
-		bfs_path = "/";
+		bfs_path = strdup("/");
 	} 
 
 	/*
@@ -103,7 +103,6 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		}
 		printf("Initialized gdt with %d groups of size %d\n",
 		 bfs_vcb->block_group_count, bfs_vcb->block_group_size);
-		printf("first block info:\n");
 		struct block_group_desc first_entry = bfs_gdt[0];
 		printf("position: %ld  free blocks count: %d\n",
 		 first_entry.bitmap_location, first_entry.free_blocks_count);
@@ -137,7 +136,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 
 		bfs_cwd = dir_arr;
 
-		bfs_path = "/";
+		bfs_path = strdup("/");
 	}
 
 	return 0;

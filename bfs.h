@@ -198,6 +198,8 @@ int get_file_from_path(struct bfs_dir_entry* target, char* path);
  */
 int find_file(char* filename, struct bfs_dir_entry* directory);
 
+char* expand_pathname(char* in);
+
 /**************************************************************
  * bfs_file.c
  * Functions for creating & modifying BFS files.
