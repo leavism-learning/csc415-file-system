@@ -185,6 +185,15 @@ int b_write (b_io_fd fd, char * buffer, int count)
 		return (-1);
 	}
 
+	// Before writing, ensure that there are enough blocks to write to
+	int new_size = fcbArray[fd].file->size + count; // in bytes
+	int allocated_size = fcbArray[fd].file->len * bfs_vcb->block_size; // in bytes
+	int extra_blocks = bytes_to_blocks(new_size - allocated_size);
+
+	if (extra_blocks > 0) {
+
+	}
+
 	return (0); //Change this
 }
 
