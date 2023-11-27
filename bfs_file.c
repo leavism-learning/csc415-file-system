@@ -194,9 +194,7 @@ int fs_delete(char* filename) {
 // return 1 if failed to get file from path
 int fs_stat(const char* path, struct fs_stat* buf) 
 {
-	// TODO: test to make sure this works
 	struct bfs_dir_entry dir_entry;
-	// TODO: ask about const char
 	const char* copy_path = strdup(path); 
 	if (!get_file_from_path(&dir_entry, (char*)copy_path))
 	{

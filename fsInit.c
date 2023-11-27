@@ -1,7 +1,7 @@
 /**************************************************************
- * Class:  CSC-415-01 Fall 2021
+ * Class:  CSC-415-01 Fall 2023
  * Names: Griffin Evans, Sukrit Dev Dhawan, Michelle Lang, Giahuy Dang
- * Student IDs:
+ * Student IDs: 922498210, 922432027, 917386319, 922722304
  * GitHub Name: griffinevans
  * Group Name: Team CDeez
  * Project: Basic File System
