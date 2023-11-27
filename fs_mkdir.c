@@ -1,6 +1,4 @@
 #include "bfs.h"
-#include "mfs.h"
-#include <stdint.h>
 
 int fs_mkdir(const char *pathname, mode_t mode)
 {
@@ -15,8 +13,6 @@ int fs_mkdir(const char *pathname, mode_t mode)
 		parent_path = strdup("/");
 	}
 
-	printf("making directory with name '%s' at path '%s'\n", filename, parent_path);
-
 	struct bfs_dir_entry parent_entry;
 	if (get_file_from_path(&parent_entry, parent_path)) {
 		fprintf(stderr, "Unable to get parent file from path %s\n", parent_path);
@@ -24,25 +20,33 @@ int fs_mkdir(const char *pathname, mode_t mode)
 		free(filename);
 		return 1;
 	}
-
+	
 	struct bfs_dir_entry* parent_dir = malloc(parent_entry.size);
 
 	struct bfs_dir_entry dentry;
 
 	bfs_block_t pos = bfs_get_free_blocks(INIT_DIR_LEN);
-	printf("pos: %ld\n", pos);
-	printf("name: %s\n", filename);
 	bfs_create_dir_entry(&dentry, filename, bfs_vcb->block_size * INIT_DIR_LEN, pos, 0);
 
 	// directory needs 2 things: directory entry array (initially has ., .. and \0)
-	printf("parent dir loc: %ld\n", parent_entry.location);
 
 	// create directory entry for parent directory
 	if (LBAread(parent_dir, parent_entry.len, parent_entry.location) != parent_entry.len) {
 		fprintf(stderr, "Error reading from parent dir %ld", parent_entry.location);
 		free(parent_dir);
+		free(filename);
+		free(parent_path);
 		return 1;
 	}
+
+	if (find_file(filename, parent_dir) != -1) {
+		fprintf(stderr, "Error: File already exists\n");
+		free(parent_dir);
+		free(filename);
+		free(parent_path);
+		return 1;
+	}
+
 
 	int i = 0;
 	struct bfs_dir_entry d = parent_dir[i];

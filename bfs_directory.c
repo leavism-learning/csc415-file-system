@@ -169,7 +169,6 @@ int get_file_from_path(struct bfs_dir_entry* target, const char* path)
 		// Find the directory entry of the current token
 		
 		struct bfs_dir_entry target_dir = current_dir[index];
-		printf("target dir name %s\n", target_dir.name);
 
 		current_dir = realloc(current_dir, target_dir.size);
 		if (LBAread(current_dir, target_dir.len, target_dir.location) != target_dir.len) {
