@@ -31,48 +31,6 @@ int bfs_create_dir_entry(struct bfs_dir_entry* dir_entry, char* name, uint64_t s
 	return 0;
 }
 
-/*
-* Create a directory (dir entry array) at the specified position
-*/
-int bfs_create_directory(bfs_block_t pos, bfs_block_t parent)
-{
-	struct bfs_dir_entry* parent_dir = malloc(bfs_vcb->block_size * INIT_DIR_LEN);
-	if (LBAread(parent_dir, INIT_DIR_LEN, parent) != INIT_DIR_LEN) {
-		fprintf(stderr, "Unable to LBAread parent dir %ld in create_dir\n", parent);
-	}
-
-	struct bfs_dir_entry* buffer = malloc(bfs_vcb->block_size * INIT_DIR_LEN);
-
-	if (buffer == NULL) {
-		perror("malloc in bfs_create_directory");
-		return 1;
-	}
-
-	if (LBAread(buffer, INIT_DIR_LEN, pos) != INIT_DIR_LEN) {
-		fprintf(stderr, "Unable to LBAread pos %ld in bfs_create_dir\n", pos);
-		return 1;
-	}
-
-	// create . and .. directory entries
-	struct bfs_dir_entry here;
-	struct bfs_dir_entry parent_dentry;
-	bfs_create_dir_entry(&here, ".", bfs_vcb->block_size * INIT_DIR_LEN, pos, 0);
-	bfs_create_dir_entry(&parent_dentry, "..", bfs_vcb->block_size * parent_dir[0].len, parent_dir[0].location, 0);
-
-	struct bfs_dir_entry nulldir;
-	nulldir.name[0] = '\0';
-
-	buffer[0] = here;
-	buffer[1] = parent_dentry;
-	buffer[2] = nulldir;
-
-	if (LBAwrite(buffer, INIT_DIR_LEN, pos) != INIT_DIR_LEN) {
-		fprintf(stderr, "Unable to LBAwrite pos %ld in bfs_create_dir\n", pos);
-	}
-
-	return 0;
-}
-
 char* fs_getcwd(char* pathname, size_t size) 
 {
 	return bfs_path;
@@ -91,7 +49,7 @@ int fs_setcwd(char* pathname)
 	free(bfs_path);
 	bfs_path = strdup(true_path);
 
-	printf("got file %s with len %d\n", file.name, file.len);
+	printf("got file %s with len %d and loc %ld\n", file.name, file.len, file.location);
 
 	int b = bytes_to_blocks(file.size);
 	bfs_cwd = realloc(bfs_cwd, b * bfs_vcb->block_size);
@@ -124,14 +82,14 @@ int fs_isDir(char* pathname)
 }
 
 // given a string, return a path 
-char* expand_pathname(char* in)
+char* expand_pathname(const char* in)
 {
 	if (strlen(in) < 1) {
 		return NULL;
 	}
 
     char* input = strdup(in);  // Duplicate the input to avoid modifying the original
-    char* result;  // Resulting expanded path
+    char* result = NULL;  // Resulting expanded path
 
     if (input[0] == '/') {
         // Absolute path, start from root
@@ -151,11 +109,11 @@ char* expand_pathname(char* in)
                 *last_slash = '\0';  // Remove the last component
             }
         } else if (strcmp(token, ".") != 0) {
+            result = realloc(result, strlen(result) + strlen(token) + 2);
 			// Skip any "." characters in path
             // Concatenate other components to the result
             if (strcmp(result, "/") != 0) {
                 // Add '/' only if the current result is not the root directory
-                result = realloc(result, strlen(result) + strlen(token) + 2);
                 strcat(result, "/");
             }
             strcat(result, token);
@@ -177,67 +135,63 @@ char* expand_pathname(char* in)
 }
 
 // return directory entry from file path
-int get_file_from_path(struct bfs_dir_entry* target, char* path)
+int get_file_from_path(struct bfs_dir_entry* target, const char* path)
 {
-	// Duplicate provided path to avoid modifying original path
-	char* filepath = expand_pathname(path);
-
-	// Get array of strings representing each entry in the filename ex.
-	// "/home/student/" -> { "/", "home", "student"}
-	char* tokens[strlen(filepath) * sizeof(char*)];
-	char* tok = strtok(filepath, "/");
-	int tok_count = 0;
-
-	if (tok == NULL) {
-		struct bfs_dir_entry* root = malloc(bfs_vcb->block_size);
-		LBAread(root, 1, bfs_vcb->root_loc);
-		memcpy(target, &root[0], sizeof(struct bfs_dir_entry));
-		free(root);
-		free(filepath);
-		return 0;
+	char* parent_path = expand_pathname(path);
+	char* last_slash = strrchr(parent_path, '/');
+	char* filename = NULL;
+	if (last_slash != NULL) {
+		filename = strdup(last_slash + 1);
+		*last_slash = '\0';
+	}
+	if (strlen(parent_path) < 1) {
+		parent_path = strdup("/");
+	}
+	if (strlen(filename) < 1) {
+		filename = strdup(".");
 	}
 
-	while (tok != NULL) {
-		tokens[tok_count++] = tok;
-		tok = strtok(NULL, "/");
-	}
+	char* tok = strtok(parent_path, "/");
 
 	// start at root
 	struct bfs_dir_entry* current_dir = malloc(bfs_vcb->root_len * bfs_vcb->block_size);
 	LBAread(current_dir, bfs_vcb->root_len, bfs_vcb->root_loc);
 
-	// Navigate to penultimate token
-	for( int i = 0; i < tok_count - 1; i++) {
-		// Find the directory entry of the current token
-		int index = find_file(tokens[i], current_dir);
+	while (tok != NULL) {
+		int index = find_file(tok, current_dir);
 		// Handle if file not found or is not a directory
-		if (index == -1 || current_dir[i].file_type != 0) {
-			fprintf(stderr, "Matching file for %s not found", tokens[i]);
-			free(filepath);
+		if (index == -1 || current_dir[index].file_type != 0) {
+			fprintf(stderr, "Matching file for %s not found", tok);
+			free(parent_path);
 			return 1;
 		}
+
+		// Find the directory entry of the current token
 		
-		struct bfs_dir_entry target_dir = current_dir[i];
+		struct bfs_dir_entry target_dir = current_dir[index];
+		printf("target dir name %s\n", target_dir.name);
 
 		current_dir = realloc(current_dir, target_dir.size);
-		if (LBAread(current_dir, target_dir.len, target_dir.location)) {
+		if (LBAread(current_dir, target_dir.len, target_dir.location) != target_dir.len) {
 			fprintf(stderr, "LBAread error in get_file_from_filepath\n");
-			free(filepath);
+			free(parent_path);
 			return 1;
 		}
+		tok = strtok(NULL, "/");
 	}
-	
+
+
 	// Find the final file/directory in the path
-	int i = find_file(tokens[tok_count - 1], current_dir);
+	int i = find_file(filename, current_dir);
 	if (i == -1) {
-		free(filepath);
+		free(parent_path);
 		return 1;
 	}
 
 	memcpy(target, &current_dir[i], sizeof(struct bfs_dir_entry));
 
-	free(filepath);
-	filepath = NULL;
+	free(parent_path);
+	parent_path = NULL;
 
 	free(current_dir);
 	current_dir = NULL;
@@ -284,6 +238,7 @@ fdDir* fs_opendir(const char* pathname)
 {
 	struct bfs_dir_entry* dir_entry = malloc(sizeof(struct bfs_dir_entry));
 	if (get_file_from_path(dir_entry, (char *)pathname)) {
+		fprintf(stderr, "Unable to get file fram path %s\n", pathname);
 		return NULL;
 	}
 

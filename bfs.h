@@ -184,7 +184,7 @@ void bfs_create_here(struct bfs_dir_entry *here, int lba_position);
  *         if an error occurs, such as if the path is invalid, if any part of the 
  *         path does not exist in the file system, or if memory allocation fails.
  */
-int get_file_from_path(struct bfs_dir_entry* target, char* path);
+int get_file_from_path(struct bfs_dir_entry* target, const char* path);
 
 /**
  * @brief Find a file with a given name in a specified directory within the bfs.
@@ -198,7 +198,7 @@ int get_file_from_path(struct bfs_dir_entry* target, char* path);
  */
 int find_file(char* filename, struct bfs_dir_entry* directory);
 
-char* expand_pathname(char* in);
+char* expand_pathname(const char* in);
 
 /**************************************************************
  * bfs_file.c
