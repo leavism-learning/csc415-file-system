@@ -176,7 +176,7 @@ int b_write (b_io_fd fd, char * buffer, int count)
 	}
 
 	// Check for write flag
-	if (!(fcbArray[fd].access_mode & O_RDWR) && !(fcbArray[fd].access_mode & O_WRONLY)) {
+	if (!(fcbArray[fd].access_mode & (O_RDWR | O_WRONLY)) {
 		fprintf(stderr, "Failed to b_write. Write flag was not set.");
 		return (-1);
 	}
