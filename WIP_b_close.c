@@ -1,9 +1,9 @@
 /**************************************************************
-* Class:  CSC-415-0# Fall 2021
-* Names: 
-* Student IDs:
-* GitHub Name:
-* Group Name:
+* Class:  CSC-415-01 Fall 2023
+* Names: Griffin Evans, Sukrit Dev Dhawan, Michelle Lang, Giahuy Dang
+* Student IDs: 922498210, 922432027, 917386319, 922722304
+* GitHub Name: griffinevans
+* Group Name: Team CDeez
 * Project: Basic File System
 *
 * File: b_io.c
@@ -32,6 +32,7 @@ typedef struct b_fcb {
 	int index;		//holds the current position in the buffer
 	int buflen;		//holds how many valid bytes are in the buffer
 	int access_mode;	// The current access mode
+	int currBlockNum;   // tracks the block num
 	struct bfs_dir_entry * file; // Holds the file info
 } b_fcb;
 
@@ -82,17 +83,8 @@ b_io_fd b_open(char* filename, int flags)
 	}
 	// Handle when file doesn't exist
 	if (get_file_from_path(target_file, filename)) {
-		// When file doesn't exist and O_CREAT isn't set
-		if (!(flags & O_CREAT)) {
-			fprintf(stderr,
-							"Cannot b_open %s. File does not exist and create flag has not been set.\n",
-							filename);
-			free(target_file);
-			return (-1);
-		}
+		// When file doesn't exist and O_CREAT is set
 		if (flags & O_CREAT) {
-			// TODO Handle when file doesn't doesn't exist and O_CREAT is set.
-			// Basically needs to actually create the file.
 			char* trimmed_name = get_filename_from_path(filename);
 			if (*trimmed_name == '\0') {
 				fprintf(stderr, "Filename from path is empty.\n");
@@ -106,7 +98,16 @@ b_io_fd b_open(char* filename, int flags)
 
 			if (LBAwrite(target_file, INIT_FILE_LEN, pos) != INIT_FILE_LEN) {
 				fprintf(stderr, "Unable to LBAwrite pos %llu in b_open.\n", pos);
+				free(trimmed_name);
+				free(target_file);
+				return (-1);
 			}
+		} else {
+			fprintf(stderr,
+							"Cannot b_open %s. File does not exist and create flag has not been set.\n",
+							filename);
+			free(target_file);
+			return (-1);
 		}
 	}
 
@@ -148,10 +149,10 @@ b_io_fd b_open(char* filename, int flags)
 }
 
 
-// Interface to seek function	
+// Interface to seek function
 int b_seek (b_io_fd fd, off_t offset, int whence)
 {
-	if (startup == 0) 
+	if (startup == 0)
 		b_init();  //Initialize our system
 
 	// check that fd is between 0 and (MAXFCBS-1)
@@ -159,13 +160,42 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 		return (-1); 					//invalid file descriptor
 	}
 
-	return (0); //Change this
+    // to checks if the file exists
+	if (fcbArray[fd].file == NULL) {
+		return (-1); 			//empty fd
+	}
+
+    // for case of going beyond the start of file
+    // sets to 0 [start of file]
+    if(offset < 0 && fcbArray[fd].index + offset < 0)
+    {
+        fcbArray[fd].index = 0;
+        return 0;
+    }
+
+    switch(whence)
+    {
+        case 0 :
+            fcbArray[fd].index = offset;     // For SEEK_SET
+            break;
+        case 1 :
+            fcbArray[fd].index += offset;   // For SEEK_CUR
+            break;
+        case 2 :
+            fcbArray[fd].index = fcbArray[fd].file->size + offset;    // For SEEK_END
+            break;
+        default:
+            break;
+    }
+
+    // returns the new start point
+    return fcbArray[fd].index;
 }
 
-// Interface to write function	
+// Interface to write function
 int b_write (b_io_fd fd, char * buffer, int count)
 {
-	if (startup == 0) 
+	if (startup == 0)
 		b_init();  //Initialize our system
 
 	// check that fd is between 0 and (MAXFCBS-1)
@@ -184,7 +214,7 @@ int b_write (b_io_fd fd, char * buffer, int count)
 //        size chunks needed to fill the callers request.  This represents the number of
 //        bytes in multiples of the blocksize.
 // Part 3 is a value less than blocksize which is what remains to copy to the callers buffer
-//        after fulfilling part 1 and part 2.  This would always be filled from a refill 
+//        after fulfilling part 1 and part 2.  This would always be filled from a refill
 //        of our buffer.
 //  +-------------+------------------------------------------------+--------+
 //  |             |                                                |        |
@@ -198,7 +228,7 @@ int b_write (b_io_fd fd, char * buffer, int count)
 int b_read (b_io_fd fd, char * buffer, int count)
 {
 
-	if (startup == 0) 
+	if (startup == 0)
 		b_init();  //Initialize our system
 
 	// check that fd is between 0 and (MAXFCBS-1)
@@ -213,7 +243,9 @@ int b_read (b_io_fd fd, char * buffer, int count)
 int b_close (b_io_fd fd)
 {
 	// TODO Write remaining content from fd's buffer onto disk
+	if (fcbArray[fd].index > 0) {
 
+	}
 	// TODO Calculate the actual amount of blocks the file used. It might've not used all 16 blocks.
 
 	// TODO memcpy changes from the fcb dir entry into the directory array itsels
