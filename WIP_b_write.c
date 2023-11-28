@@ -192,13 +192,13 @@ int b_write (b_io_fd fd, char * buffer, int count)
 	int allocated_size = fcbArray[fd].file->len * bfs_vcb->block_size; // in bytes
 	int extra_blocks = bytes_to_blocks(new_size - allocated_size);
 
-	if (extra_blocks > 0) {
-        //Check with Huy
-        fcbArray[fd].file->len += extra_blocks;
-	}
+	// if (extra_blocks > 0) {
+    //     //Check with Huy
+    //     fcbArray[fd].file->len += extra_blocks;
+	// }
 
     int bytesRemainInBuffer = B_CHUNK_SIZE - fcbArray[fd].index;
-    int check1, check2, check3 = 0;
+    int check1, check2, check3, bytesWrote = 0;
     int numBlocks, blocksWrote;
 
 
@@ -217,12 +217,14 @@ int b_write (b_io_fd fd, char * buffer, int count)
 
     if(check1 > 0){
         memcpy(fcbArray[fd].buf+fcbArray[fd].index, buffer, check1);
-
-        fcbArray[fd].index += check1;
         
         blocksWrote = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
 
-        if(fcbArray[fd].index == B_CHUNK_SIZE){
+        fcbArray[fd].index += check1;
+        bytesWrote += check1;
+
+        if(fcbArray[fd].index == B_CHUNK_SIZE && check2 == 0)
+        {
             fcbArray[fd].index = 0;
             fcbArray[fd].currBlockNum = bfs_get_free_block();
         }
@@ -231,8 +233,43 @@ int b_write (b_io_fd fd, char * buffer, int count)
         
     }
 
+    if(check2 > 0)
+    {
+        fcbArray[fd].currBlockNum = bfs_get_free_blocks(numBlocks + 1);
 
-	return (0); //Change this
+        for(int i = 0; i < numBlocks; i++)
+        {
+            blocksWrote += LBAwrite(buffer + bytesWrote, 1, fcbArray[fd].currBlockNum);
+            // Go to the next block because consecutive blocks
+            fcbArray[fd].currBlockNum++;
+            bytesWrote += B_CHUNK_SIZE;
+        }
+
+        // For the last block
+        fcbArray[fd].index = 0;
+
+    }
+
+    if(check3 > 0)
+    {
+        memcpy(fcbArray[fd].buf+fcbArray[fd].index, buffer + bytesWrote, check3);
+        fcbArray[fd].index += check3;
+
+        blocksWrote += LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
+        
+        bytesWrote += check3;
+
+        if(fcbArray[fd].index == B_CHUNK_SIZE)
+        {
+            fcbArray[fd].index = 0;
+            fcbArray[fd].currBlockNum = bfs_get_free_block();
+        }
+
+
+    }
+
+
+	return bytesWrote; //Change this
 }
 
 // Interface to read a buffer
