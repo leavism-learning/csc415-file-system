@@ -28,8 +28,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
-
-#include "b_io.h"
+#include <fcntl.h>
 
 #include "fsLow.h"
 

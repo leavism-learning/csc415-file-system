@@ -14,7 +14,21 @@
 
 #ifndef _B_IO_H
 #define _B_IO_H
-#include <fcntl.h>
+#include "bfs.h"
+
+#define MAXFCBS 20
+#define B_CHUNK_SIZE 512
+#define INIT_FILE_LEN 16
+
+typedef struct b_fcb {
+	/** TODO add all the information you need in the file control block **/
+	char* buf;		//holds the open file buffer
+	int buf_index;		//holds the current position in the buffer
+	int buflen;		//holds how many valid bytes are in the buffer
+	int access_mode;	// The current access mode
+	int current_block;   // tracks the block num
+	struct bfs_dir_entry * file; // Holds the file info
+} b_fcb;
 
 typedef int b_io_fd;
 

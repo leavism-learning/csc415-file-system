@@ -12,29 +12,7 @@
 *
 **************************************************************/
 
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>			// for malloc
-#include <string.h>			// for memcpy
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include "b_io.h"
-#include "bfs.h"
-
-#define MAXFCBS 20
-#define B_CHUNK_SIZE 512
-#define INIT_FILE_LEN 16
-
-typedef struct b_fcb {
-	/** TODO add all the information you need in the file control block **/
-	char* buf;		//holds the open file buffer
-	int index;		//holds the current position in the buffer
-	int buflen;		//holds how many valid bytes are in the buffer
-	int access_mode;	// The current access mode
-	int currBlockNum;   // tracks the block num
-	struct bfs_dir_entry * file; // Holds the file info
-} b_fcb;
 
 b_fcb fcbArray[MAXFCBS];
 
@@ -209,10 +187,13 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 
     // returns the new start point
     return fcbArray[fd].index;
+
+    //to return the updated start position in the file
+	//return (0); //Change this
 }
 
 // Interface to write function	
-int b_write (b_io_fd fd, char * buffer, int count)
+int b_write (b_io_fd fd, char* buffer, int count)
 {
 	if (startup == 0) 
 		b_init();  //Initialize our system
@@ -222,7 +203,101 @@ int b_write (b_io_fd fd, char * buffer, int count)
 		return (-1); 					//invalid file descriptor
 	}
 
-	return (0); //Change this
+	// Check for write flag
+	if (!(fcbArray[fd].access_mode & O_RDWR) && !(fcbArray[fd].access_mode & O_WRONLY)) {
+		fprintf(stderr, "Failed to b_write. Write flag was not set.");
+		return (-1);
+	}
+
+	// Check that the file exists
+	if (fcbArray[fd].file == NULL) {
+		fprintf(stderr, "File does not exist to write to.");
+		return (-1);
+	}
+
+	// Before writing, ensure that there are enough blocks to write to
+	int new_size = fcbArray[fd].file->size + count; // in bytes
+	int allocated_size = fcbArray[fd].file->len * bfs_vcb->block_size; // in bytes
+	if (new_size - allocated_size < 0) {
+		fprintf(stderr, "Failed to b_write: new size of file is less than currently allocated size.\n");
+		return (-1);
+	}
+
+	int extra_blocks = bytes_to_blocks(new_size - allocated_size);
+	if (extra_blocks > 0) {
+		// Double the blocks allocated to the file
+		bfs_block_t pos = bfs_get_free_blocks(fcbArray[fd].file->len + INIT_FILE_LEN);
+		bfs_create_dir_entry(fcbArray[fd].file, fcbArray[fd].file->name, new_size, pos, 1);
+
+	}
+
+	int bytesRemainInBuffer = B_CHUNK_SIZE - fcbArray[fd].index;
+	int check1, check2, check3, bytesWrote = 0;
+	int numBlocks, blocksWrote;
+
+
+	if (bytesRemainInBuffer >= count) {
+		check1 = count;
+	} else {
+		check1 = bytesRemainInBuffer;
+		check3 = count - bytesRemainInBuffer;
+		numBlocks = check3 / B_CHUNK_SIZE;
+		check2 = numBlocks * B_CHUNK_SIZE;
+		check3 -= check2;
+	}
+
+	if (check1 > 0) {
+		memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer, check1);
+
+		blocksWrote = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
+
+		fcbArray[fd].index += check1;
+		bytesWrote += check1;
+
+		if(fcbArray[fd].index == B_CHUNK_SIZE && check2 == 0) {
+				fcbArray[fd].index = 0;
+				fcbArray[fd].currBlockNum = bfs_get_free_block();
+		}
+
+		// TODO: Ask griffin if we need to keep track of which blocks we were on
+
+	}
+
+	if(check2 > 0) {
+		fcbArray[fd].currBlockNum = bfs_get_free_blocks(numBlocks + 1);
+
+		for(int i = 0; i < numBlocks; i++)
+		{
+			blocksWrote += LBAwrite(buffer + bytesWrote, 1, fcbArray[fd].currBlockNum);
+			// Go to the next block because consecutive blocks
+			fcbArray[fd].currBlockNum++;
+			bytesWrote += B_CHUNK_SIZE;
+		}
+
+		// For the last block
+		fcbArray[fd].index = 0;
+	}
+
+	if (check3 > 0) {
+		memcpy(fcbArray[fd].buf+fcbArray[fd].index, buffer + bytesWrote, check3);
+		fcbArray[fd].index += check3;
+
+		blocksWrote += LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
+
+		bytesWrote += check3;
+
+		if (fcbArray[fd].index == B_CHUNK_SIZE) {
+			fcbArray[fd].index = 0;
+			fcbArray[fd].currBlockNum = bfs_get_free_block();
+		}
+	}
+
+	time_t curr_time = time(NULL);
+	fcbArray[fd].file->date_accessed = curr_time;
+	fcbArray[fd].file->date_modified = curr_time;
+	fcbArray[fd].file->size += bytesWrote;
+
+	return bytesWrote; //Change this
 }
 
 // Interface to read a buffer
@@ -247,19 +322,98 @@ int b_write (b_io_fd fd, char * buffer, int count)
 int b_read (b_io_fd fd, char * buffer, int count)
 {
 
-	if (startup == 0) 
+	if (startup == 0) {
 		b_init();  //Initialize our system
+	}
 
 	// check that fd is between 0 and (MAXFCBS-1)
 	if ((fd < 0) || (fd >= MAXFCBS)) {
-		return (-1); 					//invalid file descriptor
+		return -1; 					//invalid file descriptor
 	}
 
+	if (count < 0) {
+		return -1;				//invalid count
+	}
+
+	if (fcbArray[fd].access_mode & O_WRONLY) {
+    	fprintf(stderr,"b_read: file does not have read access\n");
+    	return -1;
+    }
+
+	// checks if file exists
+	if (fcbArray[fd].file == NULL) {
+		fprintf(stderr, "File does not exist\n");
+		return -1; 			//empty fd
+	}
+
+	int bytes_read = fcbArray[fd].current_block * bfs_vcb->block_size + fcbArray[fd].index + 1;
+
+	// keeps track of total bytes to be read
+	// either count or size of file, depending on which is smaller
+	int totalToRead = count;
+	if (fcbArray[fd].buflen < count) {
+		totalToRead = fcbArray[fd].buflen;
+	}
+
+	int totalRead = 0;	//total bytes read into the user buffer
+	char* fileBuf = fcbArray[fd].buf;	// pointer to file buffer
+	int fileIndex = fcbArray[fd].index;		//current number index within file buffer
+	int fileSizeChunk = fcbArray[fd].file->len;	//file length in chunks
+
+	int remFileBufferBytes = fcbArray[fd].buflen - fileIndex;
+	int check1, check2, check3 = 0;
+
+	if (remFileBufferBytes > count) {
+		check1 = count;
+	}
+
+	else {
+		check1 = remFileBufferBytes;
+		totalToRead -= remFileBufferBytes;
+		check3 = count - remFileBufferBytes;
+		check2 = (check3 / B_CHUNK_SIZE);
+		check3 = check3 % B_CHUNK_SIZE;
+	}
+
+	if (check1 > 0) {
+		memcpy(buffer, fileBuf, check1);
+		fileBuf += check1;
+		fcbArray[fd].index += check1;
+		totalToRead -= check1;
+	}
+	if (check2 > 0) {
+		fcbArray[fd].index = 0;
+		while (check2 > 0) {
+			// figure out how to read the file chunks in
+			//LBAread(fcbArray->file.)
+		}
+	}
+
+	//find the file
 	return (0);	//Change this
 }
 
 // Interface to Close the file	
 int b_close (b_io_fd fd)
 {
+	// Write remaining content from fd's buffer onto disk
+	if (fcbArray[fd].index > 0) {
+		if (fcbArray[fd].access_mode & (O_RDWR | O_WRONLY)) {
+			LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
+		} else {
+			// There shouldn't be in anything in the buffer anyways, but checking access mode
+			// just in case.
+			fprintf(stderr, "Couldn't write remaining buffer on b_close.\n");
+		}
+	}
+
+	}
+	// TODO Calculate the actual amount of blocks the file used. It might've not used all 16 blocks.
+
+	// TODO memcpy changes from the fcb dir entry into the directory array itself
+
+	// TODO Write dir array to disk
+
+	// TODO free the fd from memory
 	return 0;
 }
