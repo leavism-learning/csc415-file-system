@@ -242,13 +242,23 @@ int b_read (b_io_fd fd, char * buffer, int count)
 // Interface to Close the file	
 int b_close (b_io_fd fd)
 {
-	// TODO Write remaining content from fd's buffer onto disk
+	// Write remaining content from fd's buffer onto disk
 	if (fcbArray[fd].index > 0) {
+		if (fcbArray[fd].access_mode & (O_RDWR | O_WRONLY)) {
+			LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
+		} else {
+			// There shouldn't be in anything in the buffer anyways, but checking access mode
+			// just in case.
+			fprintf(stderr, "Couldn't write remaining buffer on b_close.\n");
+		}
+	}
 
 	}
 	// TODO Calculate the actual amount of blocks the file used. It might've not used all 16 blocks.
 
-	// TODO memcpy changes from the fcb dir entry into the directory array itsels
+	// TODO memcpy changes from the fcb dir entry into the directory array itself
+
+	// TODO Write dir array to disk
 
 	// TODO free the fd from memory
 	return 0;

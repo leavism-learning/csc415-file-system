@@ -83,29 +83,32 @@ b_io_fd b_open(char* filename, int flags)
 	}
 	// Handle when file doesn't exist
 	if (get_file_from_path(target_file, filename)) {
-		// When file doesn't exist and O_CREAT is set
-		if (flags & O_CREAT) {
-			char* trimmed_name = get_filename_from_path(filename);
-			if (*trimmed_name == '\0') {
-				fprintf(stderr, "Filename from path is empty.\n");
-				free(trimmed_name);
-				free(target_file);
-				return (-1);
-			}
-
-			bfs_block_t pos = bfs_get_free_blocks(INIT_FILE_LEN);
-			bfs_create_dir_entry(target_file, trimmed_name, 0, pos, 1);
-
-			if (LBAwrite(target_file, INIT_FILE_LEN, pos) != INIT_FILE_LEN) {
-				fprintf(stderr, "Unable to LBAwrite pos %llu in b_open.\n", pos);
-				free(trimmed_name);
-				free(target_file);
-				return (-1);
-			}
-		} else {
+		// When file doesn't exist and O_CREAT is set, create the file
+		if (! (flags & O_CREAT)) {
 			fprintf(stderr,
 							"Cannot b_open %s. File does not exist and create flag has not been set.\n",
 							filename);
+			free(target_file);
+			return (-1);
+		}
+
+		// Get the name of the file
+		char* trimmed_name = get_filename_from_path(filename);
+		if (*trimmed_name == '\0') {
+			fprintf(stderr, "Filename from path is empty.\n");
+			free(trimmed_name);
+			free(target_file);
+			return (-1);
+		}
+
+		// Allocate space for file
+		bfs_block_t pos = bfs_get_free_blocks(INIT_FILE_LEN);
+		bfs_create_dir_entry(target_file, trimmed_name, 0, pos, 1);
+
+		// Write to disk
+		if (LBAwrite(target_file, INIT_FILE_LEN, pos) != INIT_FILE_LEN) {
+			fprintf(stderr, "Unable to LBAwrite pos %llu in b_open.\n", pos);
+			free(trimmed_name);
 			free(target_file);
 			return (-1);
 		}
@@ -147,7 +150,6 @@ b_io_fd b_open(char* filename, int flags)
 
 	return (returnFd); // all set
 }
-
 
 // Interface to seek function	
 int b_seek (b_io_fd fd, off_t offset, int whence)

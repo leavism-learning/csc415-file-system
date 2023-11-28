@@ -83,31 +83,34 @@ b_io_fd b_open(char* filename, int flags)
 	}
 	// Handle when file doesn't exist
 	if (get_file_from_path(target_file, filename)) {
-		// When file doesn't exist and O_CREAT isn't set
-		if (!(flags & O_CREAT)) {
+		// When file doesn't exist and O_CREAT is set, create the file
+		if (! (flags & O_CREAT)) {
 			fprintf(stderr,
 							"Cannot b_open %s. File does not exist and create flag has not been set.\n",
 							filename);
 			free(target_file);
 			return (-1);
 		}
-		if (flags & O_CREAT) {
-			// TODO Handle when file doesn't doesn't exist and O_CREAT is set.
-			// Basically needs to actually create the file.
-			char* trimmed_name = get_filename_from_path(filename);
-			if (*trimmed_name == '\0') {
-				fprintf(stderr, "Filename from path is empty.\n");
-				free(trimmed_name);
-				free(target_file);
-				return (-1);
-			}
 
-			bfs_block_t pos = bfs_get_free_blocks(INIT_FILE_LEN);
-			bfs_create_dir_entry(target_file, trimmed_name, 0, pos, 1);
+		// Get the name of the file
+		char* trimmed_name = get_filename_from_path(filename);
+		if (*trimmed_name == '\0') {
+			fprintf(stderr, "Filename from path is empty.\n");
+			free(trimmed_name);
+			free(target_file);
+			return (-1);
+		}
 
-			if (LBAwrite(target_file, INIT_FILE_LEN, pos) != INIT_FILE_LEN) {
-				fprintf(stderr, "Unable to LBAwrite pos %llu in b_open.\n", pos);
-			}
+		// Allocate space for file
+		bfs_block_t pos = bfs_get_free_blocks(INIT_FILE_LEN);
+		bfs_create_dir_entry(target_file, trimmed_name, 0, pos, 1);
+
+		// Write to disk
+		if (LBAwrite(target_file, INIT_FILE_LEN, pos) != INIT_FILE_LEN) {
+			fprintf(stderr, "Unable to LBAwrite pos %llu in b_open.\n", pos);
+			free(trimmed_name);
+			free(target_file);
+			return (-1);
 		}
 	}
 
@@ -143,12 +146,10 @@ b_io_fd b_open(char* filename, int flags)
 	fcbArray[returnFd].buf = buffer;
 	fcbArray[returnFd].index = 0;
 	fcbArray[returnFd].buflen = 0;
-    fcbArray[returnFd].currBlockNum = fcbArray[returnFd].file->location;
 	fcbArray[returnFd].access_mode = flags;
 
 	return (returnFd); // all set
 }
-
 
 // Interface to seek function	
 int b_seek (b_io_fd fd, off_t offset, int whence)
@@ -176,7 +177,7 @@ int b_write (b_io_fd fd, char * buffer, int count)
 	}
 
 	// Check for write flag
-	if (!(fcbArray[fd].access_mode & (O_RDWR | O_WRONLY)) {
+	if (!(fcbArray[fd].access_mode & O_RDWR) && !(fcbArray[fd].access_mode & O_WRONLY)) {
 		fprintf(stderr, "Failed to b_write. Write flag was not set.");
 		return (-1);
 	}
@@ -190,12 +191,18 @@ int b_write (b_io_fd fd, char * buffer, int count)
 	// Before writing, ensure that there are enough blocks to write to
 	int new_size = fcbArray[fd].file->size + count; // in bytes
 	int allocated_size = fcbArray[fd].file->len * bfs_vcb->block_size; // in bytes
-	int extra_blocks = bytes_to_blocks(new_size - allocated_size);
+	if (new_size - allocated_size < 0) {
+		fprintf(stderr, "Failed to b_write: new size of file is less than currently allocated size.\n");
+		return (-1);
+	}
 
-	// if (extra_blocks > 0) {
-    //     //Check with Huy
-    //     fcbArray[fd].file->len += extra_blocks;
-	// }
+	int extra_blocks = bytes_to_blocks(new_size - allocated_size);
+	if (extra_blocks > 0) {
+		// Double the blocks allocated to the file
+		bfs_block_t pos = bfs_get_free_blocks(fcbArray[fd].file->len + INIT_FILE_LEN);
+		bfs_create_dir_entry(fcbArray[fd].file, fcbArray[fd].file->name, new_size, pos, 1);
+
+	}
 
 	int bytesRemainInBuffer = B_CHUNK_SIZE - fcbArray[fd].index;
 	int check1, check2, check3, bytesWrote = 0;
@@ -212,9 +219,9 @@ int b_write (b_io_fd fd, char * buffer, int count)
 		check3 -= check2;
 	}
 
-	if (check1 > 0){
-		memcpy(fcbArray[fd].buf+fcbArray[fd].index, buffer, check1);
-		
+	if (check1 > 0) {
+		memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer, check1);
+
 		blocksWrote = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
 
 		fcbArray[fd].index += check1;
@@ -226,7 +233,7 @@ int b_write (b_io_fd fd, char * buffer, int count)
 		}
 
 		// TODO: Ask griffin if we need to keep track of which blocks we were on
-		
+
 	}
 
 	if(check2 > 0) {
@@ -242,7 +249,6 @@ int b_write (b_io_fd fd, char * buffer, int count)
 
 		// For the last block
 		fcbArray[fd].index = 0;
-
 	}
 
 	if (check3 > 0) {
@@ -250,7 +256,7 @@ int b_write (b_io_fd fd, char * buffer, int count)
 		fcbArray[fd].index += check3;
 
 		blocksWrote += LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
-		
+
 		bytesWrote += check3;
 
 		if (fcbArray[fd].index == B_CHUNK_SIZE) {
