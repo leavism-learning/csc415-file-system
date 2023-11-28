@@ -191,8 +191,29 @@ int b_write (b_io_fd fd, char * buffer, int count)
 	int extra_blocks = bytes_to_blocks(new_size - allocated_size);
 
 	if (extra_blocks > 0) {
-
+        //Check with Huy
+        fcbArray[fd].file->len += extra_blocks;
 	}
+
+    int bytesRemainInBuffer = B_CHUNK_SIZE - fcbArray[fd].index;
+    int check1, check2, check3 = 0;
+    int numBlocks;
+
+    if (bytesRemainInBuffer >= count) 
+    {
+		check1 = count;
+	}
+    else
+    {
+        check1 = bytesRemainInBuffer;
+        check3 = count - bytesRemainInBuffer;
+        numBlocks = check3 / B_CHUNK_SIZE;
+        check2 = numBlocks * B_CHUNK_SIZE;
+        check3 -= check2;
+    }
+
+
+
 
 	return (0); //Change this
 }
