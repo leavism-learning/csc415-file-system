@@ -84,34 +84,51 @@ b_io_fd b_open(char* filename, int flags)
 	// Handle when file doesn't exist
 	if (get_file_from_path(target_file, filename)) {
 		// When file doesn't exist and O_CREAT is set, create the file
-		if (! (flags & O_CREAT)) {
-			fprintf(stderr,
-							"Cannot b_open %s. File does not exist and create flag has not been set.\n",
-							filename);
+		if (!(flags & O_CREAT)) {
+			fprintf(stderr, "Cannot b_open %s. File does not exist and create flag has not been set.\n", filename);
 			free(target_file);
 			return (-1);
 		}
 
-		// Get the name of the file
-		char* trimmed_name = get_filename_from_path(filename);
-		if (*trimmed_name == '\0') {
-			fprintf(stderr, "Filename from path is empty.\n");
-			free(trimmed_name);
-			free(target_file);
-			return (-1);
+		char* parent_path = expand_pathname(filename);
+		char* last_slash = strrchr(parent_path, '/');
+		char* filename = NULL;
+		if (last_slash != NULL) {
+			filename = strdup(last_slash + 1);
+			*last_slash = '\0';
+		}
+		if (strlen(parent_path) < 1) {
+			parent_path = strdup("/");
 		}
 
 		// Allocate space for file
-		bfs_block_t pos = bfs_get_free_blocks(INIT_FILE_LEN);
-		bfs_create_dir_entry(target_file, trimmed_name, 0, pos, 1);
-
-		// Write to disk
-		if (LBAwrite(target_file, INIT_FILE_LEN, pos) != INIT_FILE_LEN) {
-			fprintf(stderr, "Unable to LBAwrite pos %llu in b_open.\n", pos);
-			free(trimmed_name);
-			free(target_file);
-			return (-1);
+		struct bfs_extent_header* extent_b = malloc(bfs_vcb->block_size);
+		if (bfs_create_extent(extent_b, INIT_FILE_LEN)) {
+			fprintf(stderr, "Unable to create extents for new file %s\n", filename);
+			return -1;
 		}
+		bfs_block_t extent_loc = bfs_get_free_blocks(1);
+		LBAwrite(extent_b, 1, extent_loc);
+		free(extent_b);
+
+		bfs_create_dir_entry(target_file, filename, 0, extent_loc, 1);
+		struct bfs_dir_entry parent_entry;
+		if (get_file_from_path(&parent_entry, parent_path)) {
+			fprintf(stderr, "Unable to get parent dir for %s\n", target_file->name);
+			return -1;
+		}
+		struct bfs_dir_entry* parent_dir = malloc(parent_entry.size);
+		LBAread(parent_dir, parent_entry.len, parent_entry.location);
+		// add the target_file dir entry to the parent dir array
+		int i = 2;
+		struct bfs_dir_entry d = parent_dir[i];
+		while (d.name[0] != '\0') {
+			d = parent_dir[++i];
+		}
+		parent_dir[i] = *target_file;
+		parent_dir[++i].name[0] = '\0';
+		LBAwrite(parent_dir, parent_entry.len, parent_entry.location);
+		free(parent_dir);
 	}
 
 	// The rest of this code is handling when the file does exist
