@@ -88,39 +88,38 @@ char* expand_pathname(const char* in)
 	if (strlen(in) < 1) {
 		return NULL;
 	}
+	char* input = strdup(in);  // Duplicate the input to avoid modifying the original
+	char* result = NULL;  // Resulting expanded path
 
-    char* input = strdup(in);  // Duplicate the input to avoid modifying the original
-    char* result = NULL;  // Resulting expanded path
+	if (input[0] == '/') {
+		// Absolute path, start from root
+		result = strdup("/");
+	} else {
+		// Relative path, start from current working directory
+		result = strdup(bfs_path);
+	}
 
-    if (input[0] == '/') {
-        // Absolute path, start from root
-        result = strdup("/");
-    } else {
-        // Relative path, start from current working directory
-        result = strdup(bfs_path);
-    }
-
-    // Tokenize the input path
-    char* token = strtok(input, "/");
-    while (token != NULL) {
-        if (strcmp(token, "..") == 0) {
-            // Move up one level (parent directory)
-            char* last_slash = strrchr(result, '/');
-            if (last_slash != NULL) {
-                *last_slash = '\0';  // Remove the last component
-            }
-        } else if (strcmp(token, ".") != 0) {
-            result = realloc(result, strlen(result) + strlen(token) + 2);
+	// Tokenize the input path
+	char* token = strtok(input, "/");
+	while (token != NULL) {
+		if (strcmp(token, "..") == 0) {
+			// Move up one level (parent directory)
+			char* last_slash = strrchr(result, '/');
+			if (last_slash != NULL) {
+				*last_slash = '\0';  // Remove the last component
+			}
+		} else if (strcmp(token, ".") != 0) {
+			result = realloc(result, strlen(result) + strlen(token) + 2);
 			// Skip any "." characters in path
-            // Concatenate other components to the result
-            if (strcmp(result, "/") != 0) {
-                // Add '/' only if the current result is not the root directory
-                strcat(result, "/");
-            }
-            strcat(result, token);
-        }
+			// Concatenate other components to the result
+			if (strcmp(result, "/") != 0) {
+				// Add '/' only if the current result is not the root directory
+				strcat(result, "/");
+			}
+			strcat(result, token);
+		}
 
-        token = strtok(NULL, "/");
+		token = strtok(NULL, "/");
 	}
 	
 	// empty string is root
@@ -128,11 +127,10 @@ char* expand_pathname(const char* in)
 		free(result);
 		result = strdup("/");
 	}
+	// Clean up dynamically allocated memory for the original input
+	free(input);
 
-    // Clean up dynamically allocated memory for the original input
-    free(input);
-
-    return result;
+	return result;
 }
 
 // return directory entry from file path
