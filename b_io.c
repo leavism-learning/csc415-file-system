@@ -97,6 +97,7 @@ b_io_fd b_open(char* filename, int flags)
 		bfs_block_t extent_loc = bfs_get_free_blocks(1);
 		if (LBAwrite(extent_b, 1, extent_loc) != 1) {
 			fprintf(stderr, "error writing new extent block\n");
+			return -1;
 		}
 		free(extent_b);
 
@@ -438,7 +439,7 @@ int b_close (b_io_fd fd)
 {
 	// Write remaining content from fd's buffer onto disk
 	if (fcbArray[fd].buf_index > 0) {
-		if (fcbArray[fd].access_mode & (O_RDWR | O_WRONLY)) {
+		if (fcbArray[fd].access_mode & O_RDONLY) {
 			LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
 		} else {
 			// There shouldn't be in anything in the buffer anyways, but checking access mode
@@ -459,35 +460,85 @@ int b_close (b_io_fd fd)
 
 int b_move(char *dest, char* src) 
 {
+	// Check source exists
 	struct bfs_dir_entry source_de;
 	if (get_file_from_path(&source_de, src)) {
-		fprintf(stderr, "Unable to get file for desrc");
+		fprintf(stderr, "b_move failed: %s does not exist", src);
 		return 1;
 	}
 
-	char* src_path = expand_pathname(src);
-	char* parent_path = expand_pathname(dest);
-	char* last_slash = strrchr(parent_path, '/');
-	char* filename = NULL;
-	if (last_slash != NULL) {
-		filename = strdup(last_slash + 1);
-		*last_slash = '\0';
-	}
-	if (strlen(parent_path) < 1) {
-		parent_path = strdup("/");
-	}
+	// Get destination's directory
+	char* dest_parent_path;
+	char* dest_filename;
+	get_parent_directory_and_filename(dest, &dest_parent_path, &dest_filename);
 
-	struct bfs_dir_entry parent_entry;
-	if (get_file_from_path(&parent_entry, parent_path)) {
-		fprintf(stderr, "Unable to get parent file from path %s\n", parent_path);
-		free(parent_path);
-		free(filename);
+	struct bfs_dir_entry dest_entry;
+	if (get_file_from_path(&dest_entry, dest_parent_path)) {
+		fprintf(stderr, "Unable to get parent dir from path %s\n", dest_parent_path);
+		free(dest_parent_path);
+		free(dest_filename);
 		return 1;
 	}
-	struct bfs_dir_entry* parent_dir = malloc(parent_entry.size);
+	struct bfs_dir_entry* dest_directory = malloc(dest_entry.size);
+	LBAread(dest_directory, dest_entry.len, dest_entry.location);
 
-	int i = 0;
-	struct bfs_dir_entry d = parent_dir[2];
+	// Get the src directory
+	char* src_parent_path;
+	char* src_filename;
+	get_parent_directory_and_filename(src, &src_parent_path, &src_filename);
+
+	struct bfs_dir_entry src_entry;
+	if (get_file_from_path(&src_entry, src_parent_path)) {
+		fprintf(stderr, "Unable to get parent dir from path %s\n", src_parent_path);
+		free(src_parent_path);
+		free(src_filename);
+		return 1;
+	}
+	struct bfs_dir_entry* src_directory = malloc(src_entry.size);
+	LBAread(src_directory, src_entry.len, src_entry.location);
+
+	// Handle when the location of dest and src are the same
+	if (dest_directory->location == src_directory->location) {
+		struct bfs_dir_entry dest_de;
+		if (find_file(dest_filename, dest_directory)) {
+			// TODO delete said file
+		}
+		strcpy(src_entry.name, dest_filename);
+		LBAwrite(dest_directory, dest_directory.len, dest_directory.location);
+
+		// Free everything
+		free(dest_directory);
+		free(dest_entry);
+		free(dest_parent_path);
+		free(dest_filename);
+
+		free(src_directory);
+		free(src_entry);
+		free(src_parent_path);
+		free(src_filename);
+		return 0;
+	}
+
+	int i = 2;
+	struct bfs_dir_entry d = dest_directory[i];
+	while (d.name[0] != '\0') {
+		d = dest_directory[++i];
+	}
+
+	dest_directory[i] = *src_entry;
+	dest_directory[++i].name[0] = '\0';
+	LBAwrite(dest_directory, dest_directory.len, dest_directory.location);
+
+	// Free everything
+	free(dest_directory);
+	free(dest_entry);
+	free(dest_parent_path);
+	free(dest_filename);
+
+	free(src_directory);
+	free(src_entry);
+	free(src_parent_path);
+	free(src_filename);
 
 	return 0 ;
 }
