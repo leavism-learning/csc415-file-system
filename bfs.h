@@ -303,6 +303,11 @@ int bytes_to_blocks(int bytes);
  */
 void print_dir_entry(struct bfs_dir_entry *dentry);
 
+/**
+ * @brief Writes the current Volume Control Block (VCB) to disk.
+ *
+ * @return 0 on success, 1 on failure (e.g., if unable to write the VCB to disk).
+ */
 int write_current_vcb();
 
 int write_current_gdt();
