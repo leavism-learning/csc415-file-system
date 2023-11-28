@@ -32,6 +32,7 @@ typedef struct b_fcb {
 	int index;		//holds the current position in the buffer
 	int buflen;		//holds how many valid bytes are in the buffer
 	int access_mode;	// The current access mode
+    int currBlockNum;   //tracks the block num
 	struct bfs_dir_entry * file; // Holds the file info
 } b_fcb;
 
@@ -142,6 +143,7 @@ b_io_fd b_open(char* filename, int flags)
 	fcbArray[returnFd].buf = buffer;
 	fcbArray[returnFd].index = 0;
 	fcbArray[returnFd].buflen = 0;
+    fcbArray[returnFd].currBlockNum = fcbArray[returnFd].file->location;
 	fcbArray[returnFd].access_mode = flags;
 
 	return (returnFd); // all set
@@ -197,7 +199,8 @@ int b_write (b_io_fd fd, char * buffer, int count)
 
     int bytesRemainInBuffer = B_CHUNK_SIZE - fcbArray[fd].index;
     int check1, check2, check3 = 0;
-    int numBlocks;
+    int numBlocks, blocksWrote;
+
 
     if (bytesRemainInBuffer >= count) 
     {
@@ -212,7 +215,21 @@ int b_write (b_io_fd fd, char * buffer, int count)
         check3 -= check2;
     }
 
+    if(check1 > 0){
+        memcpy(fcbArray[fd].buf+fcbArray[fd].index, buffer, check1);
 
+        fcbArray[fd].index += check1;
+        
+        blocksWrote = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
+
+        if(fcbArray[fd].index == B_CHUNK_SIZE){
+            fcbArray[fd].index = 0;
+            fcbArray[fd].currBlockNum = bfs_get_free_block();
+        }
+
+        // TODO: Ask griffin if we need to keep track of which blocks we were on
+        
+    }
 
 
 	return (0); //Change this
