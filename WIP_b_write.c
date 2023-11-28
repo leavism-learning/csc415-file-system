@@ -32,7 +32,7 @@ typedef struct b_fcb {
 	int index;		//holds the current position in the buffer
 	int buflen;		//holds how many valid bytes are in the buffer
 	int access_mode;	// The current access mode
-    int currBlockNum;   //tracks the block num
+	int currBlockNum;   // tracks the block num
 	struct bfs_dir_entry * file; // Holds the file info
 } b_fcb;
 
@@ -197,81 +197,72 @@ int b_write (b_io_fd fd, char * buffer, int count)
     //     fcbArray[fd].file->len += extra_blocks;
 	// }
 
-    int bytesRemainInBuffer = B_CHUNK_SIZE - fcbArray[fd].index;
-    int check1, check2, check3, bytesWrote = 0;
-    int numBlocks, blocksWrote;
+	int bytesRemainInBuffer = B_CHUNK_SIZE - fcbArray[fd].index;
+	int check1, check2, check3, bytesWrote = 0;
+	int numBlocks, blocksWrote;
 
 
-    if (bytesRemainInBuffer >= count) 
-    {
+	if (bytesRemainInBuffer >= count) {
 		check1 = count;
+	} else {
+		check1 = bytesRemainInBuffer;
+		check3 = count - bytesRemainInBuffer;
+		numBlocks = check3 / B_CHUNK_SIZE;
+		check2 = numBlocks * B_CHUNK_SIZE;
+		check3 -= check2;
 	}
-    else
-    {
-        check1 = bytesRemainInBuffer;
-        check3 = count - bytesRemainInBuffer;
-        numBlocks = check3 / B_CHUNK_SIZE;
-        check2 = numBlocks * B_CHUNK_SIZE;
-        check3 -= check2;
-    }
 
-    if(check1 > 0){
-        memcpy(fcbArray[fd].buf+fcbArray[fd].index, buffer, check1);
-        
-        blocksWrote = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
+	if (check1 > 0){
+		memcpy(fcbArray[fd].buf+fcbArray[fd].index, buffer, check1);
+		
+		blocksWrote = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
 
-        fcbArray[fd].index += check1;
-        bytesWrote += check1;
+		fcbArray[fd].index += check1;
+		bytesWrote += check1;
 
-        if(fcbArray[fd].index == B_CHUNK_SIZE && check2 == 0)
-        {
-            fcbArray[fd].index = 0;
-            fcbArray[fd].currBlockNum = bfs_get_free_block();
-        }
+		if(fcbArray[fd].index == B_CHUNK_SIZE && check2 == 0) {
+				fcbArray[fd].index = 0;
+				fcbArray[fd].currBlockNum = bfs_get_free_block();
+		}
 
-        // TODO: Ask griffin if we need to keep track of which blocks we were on
-        
-    }
+		// TODO: Ask griffin if we need to keep track of which blocks we were on
+		
+	}
 
-    if(check2 > 0)
-    {
-        fcbArray[fd].currBlockNum = bfs_get_free_blocks(numBlocks + 1);
+	if(check2 > 0) {
+		fcbArray[fd].currBlockNum = bfs_get_free_blocks(numBlocks + 1);
 
-        for(int i = 0; i < numBlocks; i++)
-        {
-            blocksWrote += LBAwrite(buffer + bytesWrote, 1, fcbArray[fd].currBlockNum);
-            // Go to the next block because consecutive blocks
-            fcbArray[fd].currBlockNum++;
-            bytesWrote += B_CHUNK_SIZE;
-        }
+		for(int i = 0; i < numBlocks; i++)
+		{
+			blocksWrote += LBAwrite(buffer + bytesWrote, 1, fcbArray[fd].currBlockNum);
+			// Go to the next block because consecutive blocks
+			fcbArray[fd].currBlockNum++;
+			bytesWrote += B_CHUNK_SIZE;
+		}
 
-        // For the last block
-        fcbArray[fd].index = 0;
+		// For the last block
+		fcbArray[fd].index = 0;
 
-    }
+	}
 
-    if(check3 > 0)
-    {
-        memcpy(fcbArray[fd].buf+fcbArray[fd].index, buffer + bytesWrote, check3);
-        fcbArray[fd].index += check3;
+	if (check3 > 0) {
+		memcpy(fcbArray[fd].buf+fcbArray[fd].index, buffer + bytesWrote, check3);
+		fcbArray[fd].index += check3;
 
-        blocksWrote += LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
-        
-        bytesWrote += check3;
+		blocksWrote += LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
+		
+		bytesWrote += check3;
 
-        if(fcbArray[fd].index == B_CHUNK_SIZE)
-        {
-            fcbArray[fd].index = 0;
-            fcbArray[fd].currBlockNum = bfs_get_free_block();
-        }
+		if (fcbArray[fd].index == B_CHUNK_SIZE) {
+			fcbArray[fd].index = 0;
+			fcbArray[fd].currBlockNum = bfs_get_free_block();
+		}
+	}
 
-
-    }
-
-    time_t curr_time = time(NULL);
-    fcbArray[fd].file->date_accessed = curr_time;
-    fcbArray[fd].file->date_modified = curr_time;
-    fcbArray[fd].file->size += bytesWrote;
+	time_t curr_time = time(NULL);
+	fcbArray[fd].file->date_accessed = curr_time;
+	fcbArray[fd].file->date_modified = curr_time;
+	fcbArray[fd].file->size += bytesWrote;
 
 	return bytesWrote; //Change this
 }
