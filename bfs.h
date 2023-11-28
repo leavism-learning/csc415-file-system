@@ -69,6 +69,24 @@ void bit_toggle(uint8_t* byte, uint8_t position);
 int bitmap_find_avail_bit(uint8_t* bitmap);
 
 /**
+ * @brief finds num_blocks consecutive blocks in the bitmap
+ *
+ * @param bitmap: Pointer to the block bitmap.
+ * @param bitmap_size: size of the bitmap
+ * @param num_blocks: number of consecutive blocks
+ * 
+ * @return The start of the location of consecutive block list
+*/
+int bitmap_find_avail_bits(uint8_t* bitmap, int bitmap_size, int num_blocks);
+
+/**
+ * @brief For changing a particular block as used
+ * @param block_num: Block number to set as used
+ * @return 1 if error, 0 if success
+*/
+int bfs_set_block(bfs_block_t block_num);
+
+/**
  * @brief Return the block number of the first available block & mark it as
  * used, or return -1 if none found.
  *
@@ -222,6 +240,7 @@ int bfs_remove_dir(struct bfs_dir_entry* entry);
  * @return 0 on success.
  */
 int bfs_create_dir_entry(struct bfs_dir_entry* dir_entry, char* name, uint64_t size, uint64_t pos, uint8_t type);
+
 /**
  * @brief Create an extent table for a given buffer in the bfs.
  *
