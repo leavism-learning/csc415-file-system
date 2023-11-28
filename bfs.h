@@ -200,6 +200,8 @@ int find_file(char* filename, struct bfs_dir_entry* directory);
 
 char* expand_pathname(const char* in);
 
+int bfs_remove_dir(struct bfs_dir_entry* entry);
+
 /**************************************************************
  * bfs_file.c
  * Functions for creating & modifying BFS files.
@@ -240,6 +242,8 @@ int bfs_create_extent(void* extent_block, int size);
  * @return 0 on success. 1 on failure.
  */
 int bfs_read_extent(void* buffer, bfs_block_t block_num);
+
+int bfs_clear_extents(struct bfs_dir_entry* entry);
 
 /**************************************************************
  * bfs_helpers.c

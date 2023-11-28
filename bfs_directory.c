@@ -13,6 +13,7 @@
  **************************************************************/
 
 #include "bfs.h"
+#include "mfs.h"
 
 /*
  * Create a directory entry with given name & size
@@ -374,3 +375,91 @@ int fs_mkdir(const char *pathname, mode_t mode)
 	return 0;
 }
 
+int fs_rmdir(const char* pathname)
+{
+	char* path = expand_pathname(pathname);
+	if (path == NULL || strlen(path) < 1) {
+		free(path);
+		return 1;
+	}
+
+	struct bfs_dir_entry entry;
+	if (get_file_from_path(&entry, pathname)) {
+		fprintf(stderr, "Unable to get directory entry for %s\n", pathname);
+		free(path);
+		return 1;
+	}
+
+	if (bfs_remove_dir(&entry)) {
+		fprintf(stderr, "Unable to remove dir\n");
+		free(path);
+		return 1;
+	}
+
+	free(path);
+	return 0;
+}
+
+int bfs_remove_dir(struct bfs_dir_entry* entry)
+{
+	if (entry->location == bfs_vcb->root_loc) {
+		fprintf(stderr, "Cannot delete root directory\n");
+		return 1;
+	}
+
+	struct bfs_dir_entry* current_dir = malloc(entry->size);
+	LBAread(current_dir, entry->len, entry->location);
+
+	// delete all subdirectories and files in dir
+	int i = 2; // skip . and .. entries
+	struct bfs_dir_entry d = current_dir[i];
+	while (d.name[0] != '\0') {
+		// delete subdirectories
+		if (d.file_type == 0) {
+			if (bfs_remove_dir(&d)) {
+				fprintf(stderr, "Unable to remove subdirectory %s\n", d.name);
+			}
+		}  else {
+			if (bfs_clear_extents(&d)) {
+				fprintf(stderr, "Unable to clear extents for file %s\n", d.name);
+			}
+		}
+		d = current_dir[++i];
+	}
+
+	// mark directory array as free 
+	if (bfs_clear_blocks(entry->location, entry->len)) {
+		fprintf(stderr, "Error clearing blocks for direcotry %s\n", entry->name);
+		free(current_dir);
+		return 1;
+	}
+
+	// remove the element in the current dir
+	struct bfs_dir_entry parent = current_dir[1];
+	struct bfs_dir_entry* parent_dir = malloc(parent.size);
+	LBAread(parent_dir, parent.len, parent.location);
+	i = 2; 
+	struct bfs_dir_entry* dir = &parent_dir[i];
+	while (dir->location != entry->location) {
+		if (dir->name[0] == '\0') {
+			fprintf(stderr, "reached end of dir before finding file\n");
+			free(parent_dir);
+			free(current_dir);
+			return 1;
+		}
+		dir = &current_dir[++i];
+	}
+
+	while (parent_dir[i].name[0] != '\0') {
+		// Move the current element to the previous index
+		parent_dir[i] = parent_dir[i + 1];
+		i++;
+    }
+	parent_dir[i-1].name[0] = '\0';
+
+	LBAwrite(parent_dir, parent.len, parent.location);
+
+	free(current_dir);
+	free(parent_dir);
+	return 0;
+}

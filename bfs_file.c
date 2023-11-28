@@ -168,26 +168,34 @@ int fs_delete(char* filename) {
 		fprintf(stderr, "Error: %s is a directory\n", filename);
 		return 1;
 	}
-
-	// read extents to find which blocks must be freed
-	uint8_t* buffer = malloc(bfs_vcb->block_size);
-
-	if (LBAread(buffer, 1, file.location) != 1) {
-		fprintf(stderr, "Unable to LBAread block %ld in fs_delete\n", file.location);
-		free(buffer);
-		return 1;
-	}
-
-	if (free_extents(buffer)) {
-		free(buffer);
-		return 1;
-	}
-
-	free(buffer);
-	buffer = NULL;
-
-	// TODO remove directory entry 
 	
+	if (bfs_clear_extents(&file)) {
+		return 1;
+	}
+	
+	return 0;
+}
+
+int bfs_clear_extents(struct bfs_dir_entry* entry)
+{
+	// read extents to find which blocks must be freed
+	uint8_t* extent_block = malloc(bfs_vcb->block_size);
+
+	if (LBAread(extent_block, 1, entry->location) != 1) {
+		fprintf(stderr, "Unable to LBAread block %ld in fs_delete\n", entry->location);
+		free(extent_block);
+		return 1;
+	}
+
+	if (free_extents(extent_block)) {
+		fprintf(stderr, "Unable to free extents for %s\n", entry->name);
+		free(extent_block);
+		return 1;
+	}
+
+	free(extent_block);
+	extent_block = NULL;
+
 	return 0;
 }
 

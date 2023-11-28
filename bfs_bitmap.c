@@ -168,7 +168,6 @@ int bfs_get_free_blocks(uint32_t num_blocks)
 	return -1;
 }
 
-
 // free n consecutive blocks starting from block_num
 int bfs_clear_blocks(bfs_block_t start, uint32_t count)
 {
