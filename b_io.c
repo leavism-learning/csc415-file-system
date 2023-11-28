@@ -139,8 +139,8 @@ b_io_fd b_open(char* filename, int flags)
 	}
 
 	fcbArray[returnFd].buf = buffer;
-	fcbArray[returnFd].index = 0;
-	fcbArray[returnFd].buflen = 0;
+	fcbArray[returnFd].buf_index = 0;
+	fcbArray[returnFd].buf_size = 0;
 	fcbArray[returnFd].access_mode = flags;
 
 	return (returnFd); // all set
@@ -164,29 +164,29 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 
     // for case of going beyond the start of file
     // sets to 0 [start of file]
-    if(offset < 0 && fcbArray[fd].index + offset < 0)
+    if(offset < 0 && fcbArray[fd].buf_index + offset < 0)
     {
-        fcbArray[fd].index = 0;
+        fcbArray[fd].buf_index = 0;
         return 0;
     }
 
     switch(whence)
     {
         case 0 : 
-            fcbArray[fd].index = offset;     // For SEEK_SET   
+            fcbArray[fd].buf_index = offset;     // For SEEK_SET   
             break;
         case 1 : 
-            fcbArray[fd].index += offset;   // For SEEK_CUR
+            fcbArray[fd].buf_index += offset;   // For SEEK_CUR
             break;
         case 2 : 
-            fcbArray[fd].index = fcbArray[fd].file->size + offset;    // For SEEK_END
+            fcbArray[fd].buf_index = fcbArray[fd].file->size + offset;    // For SEEK_END
             break;
         default:
             break;
     }
 
     // returns the new start point
-    return fcbArray[fd].index;
+    return fcbArray[fd].buf_index;
 
     //to return the updated start position in the file
 	//return (0); //Change this
@@ -231,7 +231,7 @@ int b_write (b_io_fd fd, char* buffer, int count)
 
 	}
 
-	int bytesRemainInBuffer = B_CHUNK_SIZE - fcbArray[fd].index;
+	int bytesRemainInBuffer = B_CHUNK_SIZE - fcbArray[fd].buf_index;
 	int check1, check2, check3, bytesWrote = 0;
 	int numBlocks, blocksWrote;
 
@@ -247,16 +247,16 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	}
 
 	if (check1 > 0) {
-		memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer, check1);
+		memcpy(fcbArray[fd].buf + fcbArray[fd].buf_index, buffer, check1);
 
-		blocksWrote = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
+		blocksWrote = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
 
-		fcbArray[fd].index += check1;
+		fcbArray[fd].buf_index += check1;
 		bytesWrote += check1;
 
-		if(fcbArray[fd].index == B_CHUNK_SIZE && check2 == 0) {
-				fcbArray[fd].index = 0;
-				fcbArray[fd].currBlockNum = bfs_get_free_block();
+		if(fcbArray[fd].buf_index == B_CHUNK_SIZE && check2 == 0) {
+				fcbArray[fd].buf_index = 0;
+				fcbArray[fd].current_block = bfs_get_free_block();
 		}
 
 		// TODO: Ask griffin if we need to keep track of which blocks we were on
@@ -264,31 +264,31 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	}
 
 	if(check2 > 0) {
-		fcbArray[fd].currBlockNum = bfs_get_free_blocks(numBlocks + 1);
+		fcbArray[fd].current_block = bfs_get_free_blocks(numBlocks + 1);
 
 		for(int i = 0; i < numBlocks; i++)
 		{
-			blocksWrote += LBAwrite(buffer + bytesWrote, 1, fcbArray[fd].currBlockNum);
+			blocksWrote += LBAwrite(buffer + bytesWrote, 1, fcbArray[fd].current_block);
 			// Go to the next block because consecutive blocks
-			fcbArray[fd].currBlockNum++;
+			fcbArray[fd].current_block++;
 			bytesWrote += B_CHUNK_SIZE;
 		}
 
 		// For the last block
-		fcbArray[fd].index = 0;
+		fcbArray[fd].buf_index = 0;
 	}
 
 	if (check3 > 0) {
-		memcpy(fcbArray[fd].buf+fcbArray[fd].index, buffer + bytesWrote, check3);
-		fcbArray[fd].index += check3;
+		memcpy(fcbArray[fd].buf+fcbArray[fd].buf_index, buffer + bytesWrote, check3);
+		fcbArray[fd].buf_index += check3;
 
-		blocksWrote += LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
+		blocksWrote += LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
 
 		bytesWrote += check3;
 
-		if (fcbArray[fd].index == B_CHUNK_SIZE) {
-			fcbArray[fd].index = 0;
-			fcbArray[fd].currBlockNum = bfs_get_free_block();
+		if (fcbArray[fd].buf_index == B_CHUNK_SIZE) {
+			fcbArray[fd].buf_index = 0;
+			fcbArray[fd].current_block = bfs_get_free_block();
 		}
 	}
 
@@ -346,21 +346,21 @@ int b_read (b_io_fd fd, char * buffer, int count)
 		return -1; 			//empty fd
 	}
 
-	int bytes_read = fcbArray[fd].current_block * bfs_vcb->block_size + fcbArray[fd].index + 1;
+	int bytes_read = fcbArray[fd].current_block * bfs_vcb->block_size + fcbArray[fd].buf_index + 1;
 
 	// keeps track of total bytes to be read
 	// either count or size of file, depending on which is smaller
 	int totalToRead = count;
-	if (fcbArray[fd].buflen < count) {
-		totalToRead = fcbArray[fd].buflen;
+	if (fcbArray[fd].buf_size < count) {
+		totalToRead = fcbArray[fd].buf_size;
 	}
 
 	int totalRead = 0;	//total bytes read into the user buffer
 	char* fileBuf = fcbArray[fd].buf;	// pointer to file buffer
-	int fileIndex = fcbArray[fd].index;		//current number index within file buffer
+	int fileindex = fcbArray[fd].buf_index = fcbArray[fd].buf_index;		//current number.buf_index within file buffer
 	int fileSizeChunk = fcbArray[fd].file->len;	//file length in chunks
 
-	int remFileBufferBytes = fcbArray[fd].buflen - fileIndex;
+	int remFileBufferBytes = fcbArray[fd].buf_size - fcbArray[fd].buf_index;
 	int check1, check2, check3 = 0;
 
 	if (remFileBufferBytes > count) {
@@ -378,11 +378,11 @@ int b_read (b_io_fd fd, char * buffer, int count)
 	if (check1 > 0) {
 		memcpy(buffer, fileBuf, check1);
 		fileBuf += check1;
-		fcbArray[fd].index += check1;
+		fcbArray[fd].buf_index += check1;
 		totalToRead -= check1;
 	}
 	if (check2 > 0) {
-		fcbArray[fd].index = 0;
+		fcbArray[fd].buf_index = 0;
 		while (check2 > 0) {
 			// figure out how to read the file chunks in
 			//LBAread(fcbArray->file.)
@@ -397,9 +397,9 @@ int b_read (b_io_fd fd, char * buffer, int count)
 int b_close (b_io_fd fd)
 {
 	// Write remaining content from fd's buffer onto disk
-	if (fcbArray[fd].index > 0) {
+	if (fcbArray[fd].buf_index > 0) {
 		if (fcbArray[fd].access_mode & (O_RDWR | O_WRONLY)) {
-			LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].currBlockNum);
+			LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
 		} else {
 			// There shouldn't be in anything in the buffer anyways, but checking access mode
 			// just in case.
@@ -407,7 +407,7 @@ int b_close (b_io_fd fd)
 		}
 	}
 
-	}
+	return 0;
 	// TODO Calculate the actual amount of blocks the file used. It might've not used all 16 blocks.
 
 	// TODO memcpy changes from the fcb dir entry into the directory array itself
@@ -415,5 +415,4 @@ int b_close (b_io_fd fd)
 	// TODO Write dir array to disk
 
 	// TODO free the fd from memory
-	return 0;
 }
