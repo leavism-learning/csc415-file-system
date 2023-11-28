@@ -70,3 +70,25 @@ void reload_cwd() {
 		fprintf(stderr, "error reloading bfs_cwd\n");
 	}
 }
+
+// Helper function to get parent directory and filename
+int get_parent_directory_and_filename(const char* path, char** parent_directory, char** filename) {
+    char* path_copy = strdup(path);
+    char* last_slash = strrchr(path_copy, '/');
+
+    if (last_slash != NULL) {
+        *filename = strdup(last_slash + 1);
+        *last_slash = '\0';
+    } else {
+        *filename = NULL;
+    }
+
+    if (strlen(path_copy) < 1) {
+        *parent_directory = strdup("/");
+    } else {
+        *parent_directory = strdup(path_copy);
+    }
+
+    free(path_copy);
+    return 0;
+}
