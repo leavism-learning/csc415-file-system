@@ -444,23 +444,22 @@ int b_close (b_io_fd fd)
 {
 	// Write remaining content from fd's buffer onto disk
 	if (fcbArray[fd].buf_index > 0) {
+		// There shouldn't be in anything in the buffer when O_RDONLY is set
+		// but checking anyway. We write the error if it's read-only, otherwise
+		// we write the remaining buffer.
 		if (fcbArray[fd].access_mode & O_RDONLY) {
-			LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
-		} else {
-			// There shouldn't be in anything in the buffer anyways, but checking access mode
-			// just in case.
 			fprintf(stderr, "Couldn't write remaining buffer on b_close.\n");
+		} else {
+			LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
 		}
 	}
 
-	return 0;
 	// TODO Calculate the actual amount of blocks the file used. It might've not used all 16 blocks.
-
-	// TODO memcpy changes from the fcb dir entry into the directory array itself
 
 	// TODO Write dir array to disk
 
 	// TODO free the fd from memory
+		return 0;
 }
 
 int b_move(char *dest, char* src) 
@@ -504,10 +503,12 @@ int b_move(char *dest, char* src)
 
 	// Handle when the location of dest and src are the same
 	if (dest_directory->location == src_directory->location) {
-		struct bfs_dir_entry dest_de;
-		if (find_file(dest_filename, dest_directory)) {
-			// TODO delete said file
+		// If destination file already exist, delete pre-existing file
+		if (find_file(dest_filename, dest_directory) != -1) {
+			fs_delete(dest_filename);
 		}
+
+		// Rename source file to the destination filename
 		strcpy(src_entry.name, dest_filename);
 		LBAwrite(dest_directory, dest_entry.len, dest_entry.location);
 

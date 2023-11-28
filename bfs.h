@@ -139,9 +139,11 @@ void bitmap_clear_n(uint8_t* bitmap, uint32_t start, uint32_t count);
 /**
  * @brief Get a free block from the bfs.
  *
- * @return
- *     - The block number of the allocated block if successful.
- *     - -1 if an error occurs during the allocation process or no free blocks are available.
+ * @param num_blocks The number of blocks to get.
+ *
+ * @return The block number of the allocated block if successful, or -1
+ * if an error occurs during the allocation process or no free blocks are
+ * available.
  */
 int bfs_get_free_blocks(uint32_t num_blocks);
 
@@ -149,45 +151,6 @@ int bfs_get_free_blocks(uint32_t num_blocks);
  * bfs_directory.c
  * Function definitions for working with BFS directory entries.
  **************************************************************/
-
-/**
- * @brief Create a directory at the specified position.
- *
- * @param pos The block number where the new directory should be created.
- * @param parent The block number of the parent directory.
- *
- * @return 0 on sucess, 1 on failure.
- */
-int bfs_create_directory(bfs_block_t pos, bfs_block_t parent);
-
-/**
- * @brief Creates the root directory for the BFS file system.
- *
- * @param buffer: Pointer to a buffer where the directory entries will be
- * stored.
- * @param lba_position: Logical Block Address position where the root directory
- * resides.
- *
- * @return Returns 0 on successful creation of the root directory.
- */
-int bfs_create_root(struct bfs_dir_entry *buffer, int lba_position);
-/**
- * @brief Creates a directory for the BFS file system.
- *
- * @return Returns 0 on successful creation of the directory.
- */
-int bfs_init_directory();
-
-/**
- * @brief Creates the `.` current directory for the BFS file system.
- *
- * @param here: Pointer to the `.` current directory that is being created
- * @param lba_position: Logical Block Address position of the `.` current
- * directory.
- *
- * @return Returns 0 on successful creation of the current directory.
- */
-void bfs_create_here(struct bfs_dir_entry *here, int lba_position);
 
 /**
  * Retrieves a directory entry for a specified file or directory from a given path.
@@ -205,7 +168,7 @@ void bfs_create_here(struct bfs_dir_entry *here, int lba_position);
 int get_file_from_path(struct bfs_dir_entry* target, const char* path);
 
 /**
- * @brief Find a file with a given name in a specified directory within the bfs.
+ * @brief Find a file with a given name in a specified directory within the BFS.
  *
  * This function searches for a file with the specified name within a given directory in the BFS.
  *
@@ -216,8 +179,31 @@ int get_file_from_path(struct bfs_dir_entry* target, const char* path);
  */
 int find_file(char* filename, struct bfs_dir_entry* directory);
 
+/**
+ * @brief Expands a pathname represented as a C string.
+ *
+ * @param in The input pathname to be expanded.
+ * @return A dynamically allocated C string representing the expanded absolute pathname.
+ *         The caller is responsible for freeing the memory allocated for the result using `free()`.
+ *         If the input is invalid (empty or NULL), this function returns NULL.
+ *
+ * @note This function allocates memory for the result, and it's the caller's responsibility to free that memory.
+ * @note The returned pathname is absolute, starting either from the root directory or the current working directory.
+ */
 char* expand_pathname(const char* in);
 
+/**
+ * @brief Recursively removes a directory and its contents.
+ *
+ * This function is responsible for removing a directory and all its subdirectories
+ * and files within BFS. It recursively traverses the directory structure and clears
+ * the associated data blocks and directory entries.
+ *
+ * @param entry A pointer to the directory entry to be removed.
+ * @return 0 if the directory and its contents are successfully removed, 1 otherwise.
+ *
+ * @note This won't delete the root directory.
+ */
 int bfs_remove_dir(struct bfs_dir_entry* entry);
 
 /**************************************************************
@@ -262,10 +248,33 @@ int bfs_create_extent(void* extent_block, int size);
  */
 int bfs_read_extent(void* buffer, bfs_block_t block_num);
 
+/**
+ * @brief Clears extents associated with a BFS directory entry.
+ *
+ * @param entry A pointer to the BFS directory entry for which extents need to be cleared.
+ *
+ * @return 0 on success, 1 on failure (e.g., if unable to read or free extents).
+ */
 int bfs_clear_extents(struct bfs_dir_entry* entry);
 
+/**
+ * @brief Retrieves an array of block numbers representing extents in a BFS file.
+ *
+ * @param block_num The block number containing the extent information.
+ *
+ * @return A dynamically allocated array of block numbers representing extents on success,
+ *         NULL on failure (e.g., if unable to read the extent information).
+ */
 bfs_block_t* bfs_extent_array(bfs_block_t block_num);
 
+/**
+ * @brief Deletes a file from a BFS directory.
+ *
+ * @param directory A pointer to the BFS directory entry from which the file should be deleted.
+ * @param entry A pointer to the BFS directory entry representing the file to be deleted.
+ *
+ * @return 0 on success, 1 on failure (e.g., if the file is not found, or extents cannot be cleared).
+ */
 int bfs_delete_file(struct bfs_dir_entry* directory, struct bfs_dir_entry* entry);
 
 /**************************************************************

@@ -241,5 +241,3 @@ int idx_to_bnum(int index, int block_group)
 {
 	return index + bfs_gdt[block_group].bitmap_location;
 }
-
-//int gdt_free_blocks()
