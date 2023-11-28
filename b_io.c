@@ -438,23 +438,22 @@ int b_close (b_io_fd fd)
 {
 	// Write remaining content from fd's buffer onto disk
 	if (fcbArray[fd].buf_index > 0) {
+		// There shouldn't be in anything in the buffer when O_RDONLY is set
+		// but checking anyway. We write the error if it's read-only, otherwise
+		// we write the remaining buffer.
 		if (fcbArray[fd].access_mode & O_RDONLY) {
-			LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
-		} else {
-			// There shouldn't be in anything in the buffer anyways, but checking access mode
-			// just in case.
 			fprintf(stderr, "Couldn't write remaining buffer on b_close.\n");
+		} else {
+			LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
 		}
 	}
 
-	return 0;
 	// TODO Calculate the actual amount of blocks the file used. It might've not used all 16 blocks.
-
-	// TODO memcpy changes from the fcb dir entry into the directory array itself
 
 	// TODO Write dir array to disk
 
 	// TODO free the fd from memory
+		return 0;
 }
 
 int b_move(char *dest, char* src) 
