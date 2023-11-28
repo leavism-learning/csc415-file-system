@@ -22,6 +22,7 @@ int next_block(b_fcb* fcb)
 {
 	fcb->current_block = fcb->block_arr[fcb->block_idx++];
 	if (fcb->current_block == 0) {
+		fprintf(stderr, "Current block is 0!\n");
 		return 1;
 	}
 	return 0;
@@ -251,73 +252,78 @@ int b_write (b_io_fd fd, char* buffer, int count)
 		bfs_block_t extra_buf_loc = bfs_get_free_blocks(fcbArray[fd].file->len + INIT_FILE_LEN);
 	}
 
-	int bytesRemainInBuffer = B_CHUNK_SIZE - fcbArray[fd].buf_index;
-	int check1, check2, check3, bytesWrote = 0;
-	int numBlocks, blocksWrote;
-
-
-	if (bytesRemainInBuffer >= count) {
-		check1 = count;
+	fcbArray[fd].file->len += extra_blocks;
+	int bytes_available = 0;
+	int bytes_delivered = 0;
+	if  (fcbArray[fd].file->size < 1) {
+		fcbArray[fd].file->size = 0;
+		bytes_available = bfs_vcb->block_size;
 	} else {
-		check1 = bytesRemainInBuffer;
-		check3 = count - bytesRemainInBuffer;
-		numBlocks = check3 / B_CHUNK_SIZE;
-		check2 = numBlocks * B_CHUNK_SIZE;
-		check3 -= check2;
+		// available bytes in buffer
+		bytes_available = bfs_vcb->block_size - fcbArray[fd].buf_index;
 	}
 
-	if (check1 > 0) {
-		memcpy(fcbArray[fd].buf + fcbArray[fd].buf_index, buffer, check1);
+	int part1 = count;
+	int part2 = 0;
+	int part3 = 0;
+	int blocks_written = 0;
+	int num_blocks = 0;
 
-		blocksWrote = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
-
-		fcbArray[fd].buf_index += check1;
-		bytesWrote += check1;
-
-		if(fcbArray[fd].buf_index == B_CHUNK_SIZE && check2 == 0) {
-				fcbArray[fd].buf_index = 0;
-				fcbArray[fd].current_block = bfs_get_free_block();
-		}
-
-		// TODO: Ask griffin if we need to keep track of which blocks we were on
-
+	if (bytes_available < count) {
+		int num_blocks = (count - bytes_available) / bfs_vcb->block_size;
+		part1 = bytes_available;
+		part2 = num_blocks * bfs_vcb->block_size;
+		part3 = (count - bytes_available) - part2;
 	}
 
-	if(check2 > 0) {
-		fcbArray[fd].current_block = bfs_get_free_blocks(numBlocks + 1);
+	if (part1 > 0) {
+		memcpy(fcbArray[fd].buf + fcbArray[fd].buf_index, buffer, part1);
+		
+		blocks_written = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
+		fcbArray[fd].buf_index += part1;
 
-		for(int i = 0; i < numBlocks; i++)
-		{
-			blocksWrote += LBAwrite(buffer + bytesWrote, 1, fcbArray[fd].current_block);
-			// Go to the next block because consecutive blocks
-			fcbArray[fd].current_block++;
-			bytesWrote += B_CHUNK_SIZE;
+		if (fcbArray[fd].buf_index >= bfs_vcb->block_size) {
+			if (next_block(&fcbArray[fd])) {
+				return 1;
+			}
+			fcbArray[fd].buf_index = 0;
 		}
+	}
 
-		// For the last block
+	if (part2 > 0) {
+		int block_written = 0;
+		for(int i = 0; i < num_blocks; i++) {
+			blocks_written += LBAwrite(buffer + part1 + (i * bfs_vcb->block_size), 1, fcbArray[fd].current_block);
+			if (next_block(&fcbArray[fd])) {
+				return 1;
+			}
+		}
+		part2 = blocks_written * bfs_vcb->block_size;
+	}
+
+	if (part3 > 0) {
+		memcpy(fcbArray[fd].buf + fcbArray[fd].buf_index, buffer + part1 + part2, part3);
+		blocks_written = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
+
+		fcbArray[fd].buf_index += part3;
+	}
+
+	if (fcbArray[fd].buf_index >= bfs_vcb->block_size) {
+		if(next_block(&fcbArray[fd])) {
+			return 1;
+		}
 		fcbArray[fd].buf_index = 0;
 	}
 
-	if (check3 > 0) {
-		memcpy(fcbArray[fd].buf+fcbArray[fd].buf_index, buffer + bytesWrote, check3);
-		fcbArray[fd].buf_index += check3;
+	time_t t = time(NULL);
+	fcbArray[fd].file->date_accessed = t;
+	fcbArray[fd].file->date_modified = t;
+	bytes_delivered = part1 + part2 + part3;
+	fcbArray[fd].file->size += bytes_delivered;
 
-		blocksWrote += LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
+	// todo write to parent dir
 
-		bytesWrote += check3;
-
-		if (fcbArray[fd].buf_index == B_CHUNK_SIZE) {
-			fcbArray[fd].buf_index = 0;
-			fcbArray[fd].current_block = bfs_get_free_block();
-		}
-	}
-
-	time_t curr_time = time(NULL);
-	fcbArray[fd].file->date_accessed = curr_time;
-	fcbArray[fd].file->date_modified = curr_time;
-	fcbArray[fd].file->size += bytesWrote;
-
-	return bytesWrote; //Change this
+	return bytes_delivered;
 }
 
 // Interface to read a buffer
