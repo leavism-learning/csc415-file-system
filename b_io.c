@@ -498,10 +498,12 @@ int b_move(char *dest, char* src)
 
 	// Handle when the location of dest and src are the same
 	if (dest_directory->location == src_directory->location) {
-		struct bfs_dir_entry dest_de;
-		if (find_file(dest_filename, dest_directory)) {
-			// TODO delete said file
+		// If destination file already exist, delete pre-existing file
+		if (find_file(dest_filename, dest_directory) != -1) {
+			fs_delete(dest_filename);
 		}
+
+		// Rename source file to the destination filename
 		strcpy(src_entry.name, dest_filename);
 		LBAwrite(dest_directory, dest_entry.len, dest_entry.location);
 
