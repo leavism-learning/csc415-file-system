@@ -32,6 +32,7 @@ typedef struct b_fcb {
 	int index;		//holds the current position in the buffer
 	int buflen;		//holds how many valid bytes are in the buffer
 	int access_mode;	// The current access mode
+	int currBlockNum;   // tracks the block num
 	struct bfs_dir_entry * file; // Holds the file info
 } b_fcb;
 
