@@ -23,9 +23,7 @@ int bfs_create_extent(void* extent_block, int size)
 {
 	if (extent_block == NULL) {
 		extent_block = malloc(bfs_vcb->block_size);
-	} else {
-		extent_block = realloc(extent_block, bfs_vcb->block_size);
-	}
+	} 
 
 	// find out how many extents are needed for file
 	int blocks_needed = bytes_to_blocks(size);
@@ -82,6 +80,49 @@ int bfs_create_extent(void* extent_block, int size)
 	return 0;
 }
 
+// OPTION 1:
+// Write a function that returns an array of block numbers from an extent
+// OPTION 2: 
+// read all extent data into a big buffer and hop through it 512 bytes at a time 
+
+bfs_block_t* bfs_extent_array(bfs_block_t block_num)
+{
+	struct bfs_extent_header* extent = malloc(bfs_vcb->block_size);
+	if (LBAread(extent, 1, block_num) != 1) {
+		fprintf(stderr, "Unable to LBAread extent at block %ld\n", block_num);
+		return NULL;
+	}
+	struct bfs_extent_header header = extent[0];
+	if (header.eh_depth != 0) {
+		fprintf(stderr, "Error: Extent uses unimplemented indexes\n");
+		return NULL;
+	}
+
+	struct bfs_extent* ext_leaves = (struct bfs_extent*) extent;
+
+	// find out how many blocks are needed for extents
+	int len = header.eh_entries * 10;
+	bfs_block_t* arr = calloc(sizeof(bfs_block_t), len);
+	int pos = 0;
+	for (int i = 1; i <= header.eh_entries; i++) {
+		struct bfs_extent leaf = ext_leaves[i];
+		for (int j = 0; j < leaf.ext_len; j++) {
+			while (pos >= len) {
+				len *= 2;
+				arr = realloc(arr, len);
+			}
+			arr[pos++] = leaf.ext_block + j;
+		}
+	}
+	if (pos >= len) {
+		len *= 2;
+		arr = realloc(arr, len);
+	}
+	arr[pos++] = 0;
+
+	return arr;
+}
+
 int bfs_read_extent(void* data, bfs_block_t block_num) 
 {
 	struct bfs_extent_header* extent = malloc(bfs_vcb->block_size);
@@ -101,7 +142,7 @@ int bfs_read_extent(void* data, bfs_block_t block_num)
 
 	// find out how many blocks are needed for extents
 	int data_len = 0;
-	for (int i = 0; i < header.eh_entries; i++) {
+	for (int i = 1; i < header.eh_entries; i++) {
 		struct bfs_extent leaf = ext_leaves[i];
 		data_len += leaf.ext_len;
 	}
@@ -157,22 +198,62 @@ int free_extents(uint8_t* buffer) {
 	return 0;
 }
 
-int fs_delete(char* filename) {
+int fs_delete(char* filename) 
+{
+	char* parent_dir;
+	char* fname;
+	if (get_parent_directory_and_filename(filename, &parent_dir, &fname)) {
+		fprintf(stderr, "Unable to parse filepath\n");
+	}
+
 	struct bfs_dir_entry file;
-	if (get_file_from_path(&file, filename)) {
+	if (get_file_from_path(&file, fname)) {
 		fprintf(stderr, "Unable to find file %s\n", filename);
 		return 1;
+	}
+
+	struct bfs_dir_entry directory;
+	if (get_file_from_path(&directory, parent_dir)) {
+		fprintf(stderr, "Unable to find directory %s\n", parent_dir);
 	}
 
 	if (file.file_type == 0) {
 		fprintf(stderr, "Error: %s is a directory\n", filename);
 		return 1;
 	}
-	
-	if (bfs_clear_extents(&file)) {
-		return 1;
+
+	if (bfs_delete_file(&directory, &file)) {
+		fprintf(stderr, "Unable to delete file %s\n", file.name);
 	}
 	
+	return 0;
+}
+
+int bfs_delete_file(struct bfs_dir_entry* directory, struct bfs_dir_entry* entry) 
+{
+	struct bfs_dir_entry* parent_dir = malloc(directory->size);
+	LBAread(parent_dir, directory->len, directory->location);
+	int idx = find_file(entry->name, parent_dir);
+	if (idx == -1) {
+		fprintf(stderr, "Unable to find file %s in directory %s\n", entry->name, directory->name);
+		return 1;
+	}
+
+	if (bfs_clear_extents(entry)) {
+		fprintf(stderr, "Unable to clear extents %s\n", entry->name);
+		return 1;
+	}
+
+	while (parent_dir[idx].name[0] != '\0') {
+		// Move the current element to the previous index
+		parent_dir[idx] = parent_dir[idx + 1];
+		idx++;
+    }
+	parent_dir[idx-1].name[0] = '\0';
+
+	LBAwrite(parent_dir, directory->len, directory->location);
+
+	free(parent_dir);
 	return 0;
 }
 
