@@ -26,7 +26,9 @@ typedef struct b_fcb {
 	int buf_index;		//holds the current position in the buffer
 	int buf_size;		//holds how many valid bytes are in the buffer
 	int access_mode;	// The current access mode
-	int current_block;   // tracks the block num
+	bfs_block_t* block_arr;		// array of block numbers
+	int block_idx;		// index in block_arr
+	int current_block;   // current block number  
 	struct bfs_dir_entry* file; // Holds the file info
 } b_fcb;
 
@@ -37,6 +39,7 @@ int b_read (b_io_fd fd, char * buffer, int count);
 int b_write (b_io_fd fd, char * buffer, int count);
 int b_seek (b_io_fd fd, off_t offset, int whence);
 int b_close (b_io_fd fd);
+int b_move(char* dest, char* src);
 
 #endif
 

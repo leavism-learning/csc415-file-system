@@ -221,19 +221,20 @@ int b_write (b_io_fd fd, char* buffer, int count)
 
 	// check that fd is between 0 and (MAXFCBS-1)
 	if ((fd < 0) || (fd >= MAXFCBS)) {
-		return (-1); 					//invalid file descriptor
+		fprintf(stderr, "Invalid file descriptor\n");
+		return -1; 					//invalid file descriptor
 	}
 
 	// Check for write flag
-	if (!(fcbArray[fd].access_mode & O_RDWR) && !(fcbArray[fd].access_mode & O_WRONLY)) {
-		fprintf(stderr, "Failed to b_write. Write flag was not set.");
-		return (-1);
+	if (fcbArray[fd].access_mode & O_RDONLY) {
+		fprintf(stderr, "Failed to b_write. Write flag is not set.");
+		return -1;
 	}
 
 	// Check that the file exists
 	if (fcbArray[fd].file == NULL) {
-		fprintf(stderr, "File does not exist to write to.");
-		return (-1);
+		fprintf(stderr, "File does not exist.");
+		return -1;
 	}
 
 	// Before writing, ensure that there are enough blocks to write to
@@ -247,9 +248,7 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	int extra_blocks = bytes_to_blocks(new_size - allocated_size);
 	if (extra_blocks > 0) {
 		// Double the blocks allocated to the file
-		bfs_block_t pos = bfs_get_free_blocks(fcbArray[fd].file->len + INIT_FILE_LEN);
-		bfs_create_dir_entry(fcbArray[fd].file, fcbArray[fd].file->name, new_size, pos, 1);
-
+		bfs_block_t extra_buf_loc = bfs_get_free_blocks(fcbArray[fd].file->len + INIT_FILE_LEN);
 	}
 
 	int bytesRemainInBuffer = B_CHUNK_SIZE - fcbArray[fd].buf_index;
@@ -504,16 +503,14 @@ int b_move(char *dest, char* src)
 			// TODO delete said file
 		}
 		strcpy(src_entry.name, dest_filename);
-		LBAwrite(dest_directory, dest_directory.len, dest_directory.location);
+		LBAwrite(dest_directory, dest_entry.len, dest_entry.location);
 
 		// Free everything
 		free(dest_directory);
-		free(dest_entry);
 		free(dest_parent_path);
 		free(dest_filename);
 
 		free(src_directory);
-		free(src_entry);
 		free(src_parent_path);
 		free(src_filename);
 		return 0;
@@ -525,18 +522,16 @@ int b_move(char *dest, char* src)
 		d = dest_directory[++i];
 	}
 
-	dest_directory[i] = *src_entry;
+	dest_directory[i] = src_entry;
 	dest_directory[++i].name[0] = '\0';
-	LBAwrite(dest_directory, dest_directory.len, dest_directory.location);
+	LBAwrite(dest_directory, dest_entry.len, dest_entry.location);
 
 	// Free everything
 	free(dest_directory);
-	free(dest_entry);
 	free(dest_parent_path);
 	free(dest_filename);
 
 	free(src_directory);
-	free(src_entry);
 	free(src_parent_path);
 	free(src_filename);
 
