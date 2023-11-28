@@ -1,9 +1,9 @@
 /**************************************************************
-* Class:  CSC-415-0# - Summer 2023
-* Names: 
-* Student IDs:
-* GitHub Name:
-* Group Name:
+* Class:  CSC-415-01 Fall 2023
+* Names: Griffin Evans, Sukrit Dev Dhawan, Michelle Lang, Giahuy Dang
+* Student IDs: 922498210, 922432027, 917386319, 922722304
+* GitHub Name: griffinevans
+* Group Name: Team CDeez
 * Project: Basic File System
 *
 * File: fsShell.c
@@ -26,7 +26,6 @@
 #include <string.h>
 
 #include "fsLow.h"
-#include "bfs.h"
 #include "b_io.h"
 
 #define PERMISSIONS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)
@@ -42,8 +41,8 @@
 #define CMDMV_ON	1
 #define CMDMD_ON	1
 #define CMDRM_ON	1
-#define CMDCP2L_ON	0
-#define CMDCP2FS_ON	0
+#define CMDCP2L_ON	1
+#define CMDCP2FS_ON	1
 #define CMDCD_ON	1
 #define CMDPWD_ON	1
 #define CMDTOUCH_ON	1
@@ -361,13 +360,26 @@ int cmd_cp (int argcnt, char *argvec[])
 *  Move file commmand
 ****************************************************/
 int cmd_mv (int argcnt, char *argvec[])
-	{
-#if (CMDMV_ON == 1)				
-	return -99;
-	// **** TODO ****  For you to implement	
+{
+#if (CMDMV_ON == 1)
+	char * src;
+	char * dest;
+
+	switch (argcnt) {
+		case 3:
+			src = argvec[1];
+			dest = argvec[2];
+		break;
+
+		default:
+			printf("Usage: mv srcfile destfile\n");
+			return (-1);
+	}
+
+	b_move(dest, src);
 #endif
 	return 0;
-	}
+}
 
 /****************************************************
 *  Make Directory commmand

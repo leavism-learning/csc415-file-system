@@ -18,6 +18,15 @@ b_fcb fcbArray[MAXFCBS];
 
 int startup = 0;	//Indicates that this has not been initialized
 
+int next_block(b_fcb* fcb)
+{
+	fcb->current_block = fcb->block_arr[fcb->block_idx++];
+	if (fcb->current_block == 0) {
+		return 1;
+	}
+	return 0;
+}
+
 //Method to initialize our file system
 void b_init ()
 {
@@ -80,13 +89,15 @@ b_io_fd b_open(char* filename, int flags)
 		}
 
 		// Allocate space for file
-		struct bfs_extent_header* extent_b = malloc(bfs_vcb->block_size);
+		void* extent_b = malloc(bfs_vcb->block_size);
 		if (bfs_create_extent(extent_b, INIT_FILE_LEN)) {
 			fprintf(stderr, "Unable to create extents for new file %s\n", filename);
 			return -1;
 		}
 		bfs_block_t extent_loc = bfs_get_free_blocks(1);
-		LBAwrite(extent_b, 1, extent_loc);
+		if (LBAwrite(extent_b, 1, extent_loc) != 1) {
+			fprintf(stderr, "error writing new extent block\n");
+		}
 		free(extent_b);
 
 		bfs_create_dir_entry(target_file, filename, 0, extent_loc, 1);
@@ -138,11 +149,20 @@ b_io_fd b_open(char* filename, int flags)
 		return (-1);
 	}
 
+	bfs_block_t* block_array = bfs_extent_array(target_file->location);
+	if (block_array == NULL) {
+		fprintf(stderr, "Unable to get block array for file %s\n", target_file->name);
+		return 1;
+	}
+
 	fcbArray[returnFd].buf = buffer;
 	fcbArray[returnFd].buf_index = 0;
 	fcbArray[returnFd].buf_size = 0;
 	fcbArray[returnFd].access_mode = flags;
+	fcbArray[returnFd].block_arr = block_array;
+	next_block(&fcbArray[returnFd]);
 
+	free(buffer);
 	return (returnFd); // all set
 }
 
@@ -346,51 +366,71 @@ int b_read (b_io_fd fd, char * buffer, int count)
 		return -1; 			//empty fd
 	}
 
+	struct bfs_dir_entry* file = fcbArray[fd].file;
+
 	int bytes_read = fcbArray[fd].current_block * bfs_vcb->block_size + fcbArray[fd].buf_index + 1;
 
-	// keeps track of total bytes to be read
-	// either count or size of file, depending on which is smaller
-	int totalToRead = count;
-	if (fcbArray[fd].buf_size < count) {
-		totalToRead = fcbArray[fd].buf_size;
+	if (bytes_read >= file->size) {
+		fprintf(stderr, "Requested more bytes than file size");
+		return -1;
 	}
 
-	int totalRead = 0;	//total bytes read into the user buffer
-	char* fileBuf = fcbArray[fd].buf;	// pointer to file buffer
-	int fileindex = fcbArray[fd].buf_index = fcbArray[fd].buf_index;		//current number.buf_index within file buffer
-	int fileSizeChunk = fcbArray[fd].file->len;	//file length in chunks
+	int bytes_available = fcbArray[fd].buf_size - fcbArray[fd].buf_index;
+	int bytes_written = (fcbArray[fd].current_block * bfs_vcb->block_size) - bytes_available;
 
-	int remFileBufferBytes = fcbArray[fd].buf_size - fcbArray[fd].buf_index;
-	int check1, check2, check3 = 0;
-
-	if (remFileBufferBytes > count) {
-		check1 = count;
-	}
-
-	else {
-		check1 = remFileBufferBytes;
-		totalToRead -= remFileBufferBytes;
-		check3 = count - remFileBufferBytes;
-		check2 = (check3 / B_CHUNK_SIZE);
-		check3 = check3 % B_CHUNK_SIZE;
-	}
-
-	if (check1 > 0) {
-		memcpy(buffer, fileBuf, check1);
-		fileBuf += check1;
-		fcbArray[fd].buf_index += check1;
-		totalToRead -= check1;
-	}
-	if (check2 > 0) {
-		fcbArray[fd].buf_index = 0;
-		while (check2 > 0) {
-			// figure out how to read the file chunks in
-			//LBAread(fcbArray->file.)
+	if ((count + bytes_written) > file->size) {
+		count = file->size - bytes_written;
+		if (count < 0) {
+			fprintf(stderr, "Negative count with %d written at block %d", bytes_written, fcbArray[fd].current_block);
 		}
 	}
 
-	//find the file
-	return (0);	//Change this
+	int part1 = count;
+	int part2 = 0;
+	int part3 = 0;
+	int num_blocks = 0;
+
+	if (bytes_available < count) {
+		num_blocks  = (count - bytes_available) / bfs_vcb->block_size;
+		part1 = bytes_available;
+		part2 = num_blocks  * bfs_vcb->block_size;
+		part3 = count - bytes_available - part2;
+	}
+
+	if (part1 > 0) {
+		memcpy(buffer, fcbArray[fd].buf + fcbArray[fd].buf_index, part1);
+		fcbArray[fd].buf_index += part1;
+	}
+
+	if (part2 > 0) {
+		int blocks_read = 0;
+		for (int i = 0; i < num_blocks; i++) {
+			blocks_read += LBAread(buffer + part1 + (i * bfs_vcb->block_size), 1, fcbArray[fd].current_block);
+			if (next_block(&fcbArray[fd])) {
+				fprintf(stderr, "Invalid next block\n");
+				return 1;
+			}
+		}
+		part2 = blocks_read * bfs_vcb->block_size;
+	}
+
+	if (part3 > 0) {
+		int blocks_read = LBAread(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
+		fcbArray[fd].buf_size = bfs_vcb->block_size;
+		if (next_block(&fcbArray[fd])) {
+			fprintf(stderr, "Invalid next block\n");
+			return 1;
+		}
+		fcbArray[fd].buf_index = 0;
+	}
+
+	if (part3 > 0) {
+		memcpy(buffer + part1 + part2, fcbArray[fd].buf + fcbArray[fd].buf_index, part3);
+		fcbArray[fd].buf_index += part3;
+	}
+
+	fcbArray[fd].file->date_accessed = time(NULL);
+	return part1 + part2 + part3;
 }
 
 // Interface to Close the file	
@@ -415,4 +455,39 @@ int b_close (b_io_fd fd)
 	// TODO Write dir array to disk
 
 	// TODO free the fd from memory
+}
+
+int b_move(char *dest, char* src) 
+{
+	struct bfs_dir_entry source_de;
+	if (get_file_from_path(&source_de, src)) {
+		fprintf(stderr, "Unable to get file for desrc");
+		return 1;
+	}
+
+	char* src_path = expand_pathname(src);
+	char* parent_path = expand_pathname(dest);
+	char* last_slash = strrchr(parent_path, '/');
+	char* filename = NULL;
+	if (last_slash != NULL) {
+		filename = strdup(last_slash + 1);
+		*last_slash = '\0';
+	}
+	if (strlen(parent_path) < 1) {
+		parent_path = strdup("/");
+	}
+
+	struct bfs_dir_entry parent_entry;
+	if (get_file_from_path(&parent_entry, parent_path)) {
+		fprintf(stderr, "Unable to get parent file from path %s\n", parent_path);
+		free(parent_path);
+		free(filename);
+		return 1;
+	}
+	struct bfs_dir_entry* parent_dir = malloc(parent_entry.size);
+
+	int i = 0;
+	struct bfs_dir_entry d = parent_dir[2];
+
+	return 0 ;
 }
