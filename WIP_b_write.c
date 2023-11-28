@@ -268,6 +268,10 @@ int b_write (b_io_fd fd, char * buffer, int count)
 
     }
 
+    time_t curr_time = time(NULL);
+    fcbArray[fd].file->date_accessed = curr_time;
+    fcbArray[fd].file->date_modified = curr_time;
+    fcbArray[fd].file->size += bytesWrote;
 
 	return bytesWrote; //Change this
 }
