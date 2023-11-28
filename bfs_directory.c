@@ -66,7 +66,7 @@ int fs_setcwd(char* pathname)
 int fs_isFile(char* filename) 
 {
 	struct bfs_dir_entry file;
-	if (!get_file_from_path(&file, filename)) {
+	if (get_file_from_path(&file, filename)) {
 		return 0;
 	}
 	return file.file_type;

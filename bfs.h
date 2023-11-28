@@ -264,6 +264,10 @@ int bfs_read_extent(void* buffer, bfs_block_t block_num);
 
 int bfs_clear_extents(struct bfs_dir_entry* entry);
 
+bfs_block_t* bfs_extent_array(bfs_block_t block_num);
+
+int bfs_delete_file(struct bfs_dir_entry* directory, struct bfs_dir_entry* entry);
+
 /**************************************************************
  * bfs_helpers.c
  * Helper funcions for Basic File System.
@@ -295,6 +299,8 @@ int write_current_vcb();
 int write_current_gdt();
 
 void reload_cwd();
+
+int get_parent_directory_and_filename(const char* path, char** parent_directory, char** filename);
 
 /**
  * Extracts and returns the last component of a given file path.
