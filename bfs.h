@@ -301,7 +301,7 @@ int bytes_to_blocks(int bytes);
  *
  * @param dentry: Pointer to the directory entry to be printed.
  */
-void print_dir_entry(struct bfs_dir_entry *dentry);
+void print_dir_entry(struct bfs_dir_entry* dentry);
 
 /**
  * @brief Writes the current Volume Control Block (VCB) to disk.
@@ -310,10 +310,31 @@ void print_dir_entry(struct bfs_dir_entry *dentry);
  */
 int write_current_vcb();
 
+/**
+ * @brief Writes the current Group Descriptor Table (GDT) to disk.
+ *
+ * @return 0 on success, 1 on failure.
+ */
 int write_current_gdt();
 
+/**
+ * @brief Reloads the CWD from disk into the bfs_cwd global variable.
+ */
 void reload_cwd();
 
+/**
+ * @brief Extracts the parent directory and filename from a given path.
+ *
+ * This function takes a path as input and extracts the parent directory and filename
+ * components. It is a helper function used in file and directory operations to separate
+ * the path into its constituent parts.
+ *
+ * @param path The input path from which the parent directory and filename should be extracted.
+ * @param parent_directory A pointer to a char pointer that will store the extracted parent directory.
+ * @param filename A pointer to a char pointer that will store the extracted filename.
+ *
+ * @return 0 on success.
+ */
 int get_parent_directory_and_filename(const char* path, char** parent_directory, char** filename);
 
 /**
