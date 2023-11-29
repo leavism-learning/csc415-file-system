@@ -108,8 +108,14 @@ b_io_fd b_open(char* filename, int flags)
 		free(extent_b);
 		extent_b = NULL;
 
-		bfs_create_dir_entry(target_file, fname, 0, extent_loc, 1);
-		target_file->len = INIT_FILE_LEN;
+		bfs_create_dir_entry(
+			target_file, 
+			fname, 
+			INIT_FILE_LEN * bfs_vcb->block_size, 
+			extent_loc, 
+			1
+		);
+		printf("created file with size %ld\n", target_file->size);
 		
 		struct bfs_dir_entry* parent_dir = malloc(parent_entry->size);
 		LBAread(parent_dir, parent_entry->len, parent_entry->location);
@@ -375,6 +381,7 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	directory[idx] = *fcbArray[fd].file;
 	LBAwrite(directory, fcbArray[fd].parent_dir_entry->len, fcbArray[fd].parent_dir_entry->location);
 
+	printf("done writing, new filesize is %ld\n", fcbArray[fd].file->size);
 	return bytes_delivered;
 }
 
@@ -424,20 +431,24 @@ int b_read (b_io_fd fd, char * buffer, int count)
 		return -1; 			//empty fd
 	}
 
-	struct bfs_dir_entry* file = fcbArray[fd].file;
+	int bytes_read = fcbArray[fd].block_idx * bfs_vcb->block_size + fcbArray[fd].buf_index + 1;
 
-	int bytes_read = fcbArray[fd].current_block * bfs_vcb->block_size + fcbArray[fd].buf_index + 1;
-
-	if (bytes_read >= file->size) {
-		fprintf(stderr, "Requested more bytes than file size");
+	if (bytes_read >= fcbArray[fd].file->size) {
+		fprintf(stderr, "Requested more bytes (%d) than file size (%ld)\n", 
+		bytes_read, fcbArray[fd].file->size);
 		return -1;
 	}
 
 	int bytes_available = fcbArray[fd].buf_size - fcbArray[fd].buf_index;
 	int bytes_written = (fcbArray[fd].current_block * bfs_vcb->block_size) - bytes_available;
 
-	if ((count + bytes_written) > file->size) {
-		count = file->size - bytes_written;
+	if (fcbArray[fd].file->size == 0) {
+		buffer[0] = '\0';
+		return 0;
+	}
+
+	if ((count + bytes_written) > fcbArray[fd].file->size) {
+		count = fcbArray[fd].file->size - bytes_written;
 		if (count < 0) {
 			fprintf(stderr, "Negative count with %d written at block %d", bytes_written, fcbArray[fd].current_block);
 		}
