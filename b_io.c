@@ -192,28 +192,26 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
         return 0;
     }
 
-	int numOfBlocks = offset / B_CHUNK_SIZE;
-	off_t actualOffset = offset - (B_CHUNK_SIZE * numOfBlocks);
 
-	if(whence & SEEK_SET)
-	{
+
+	int numOfBlocks = offset / bfs_vcb->block_size;
+	off_t actualOffset = offset - (bfs_vcb->block_size * numOfBlocks);
+
+	//TODO take care of case of offset going outside file size
+
+	if (whence & SEEK_SET) {
 		fcbArray[fd].current_block = fcbArray[fd].block_arr[numOfBlocks];
 		fcbArray[fd].block_idx = numOfBlocks;
 		fcbArray[fd].buf_index = actualOffset;
-	}
-	else if(whence & SEEK_CUR)
-	{
+	} else if (whence & SEEK_CUR) {
 		//maybe not needed
 		// fcbArray[fd].current_block += fcbArray[fd].block_arr[numOfBlocks];
 		// fcbArray[fd].block_idx += numOfBlocks;
-
 		fcbArray[fd].buf_index += actualOffset;
-	}
-	else if(whence & SEEK_END)
-	{
-		//TODO: handle case of size being multiple of chunk size
+	} else if (whence & SEEK_END) {
+		//TODO handle case of size being multiple of chunk size
 
-		int last_indx_block_arr = fcbArray[fd].file->size / B_CHUNK_SIZE;
+		int last_indx_block_arr = fcbArray[fd].file->size / bfs_vcb->block_size;
 		fcbArray[fd].current_block = fcbArray[fd].block_arr[last_indx_block_arr];
 
 		fcbArray[fd].buf_index = fcbArray[fd].file->size - fcbArray[fd].file->size*last_indx_block_arr;
@@ -222,12 +220,8 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 
 	fcbArray[fd].file->date_accessed = time(NULL);
 
-
     // returns the new start point
     return fcbArray[fd].buf_index;
-
-    //to return the updated start position in the file
-	//return (0); //Change this
 }
 
 // Interface to write function	
