@@ -97,24 +97,24 @@ bfs_block_t* bfs_extent_array(bfs_block_t block_num)
 
 	// find out how many blocks are needed for extents
 	int len = header.eh_entries * 10;
-	bfs_block_t* arr = calloc(sizeof(bfs_block_t), len);
+	bfs_block_t* arr = calloc(len, sizeof(bfs_block_t));
 	int pos = 0;
 	for (int i = 1; i <= header.eh_entries; i++) {
 		struct bfs_extent leaf = ext_leaves[i];
 		for (int j = 0; j < leaf.ext_len; j++) {
+			// if needed, increase size of array
 			while (pos >= len) {
 				len *= 2;
-				arr = realloc(arr, len);
+				arr = realloc(arr, len * sizeof(bfs_block_t));
 			}
 			arr[pos++] = leaf.ext_block + j;
 		}
 	}
-	if (pos >= len) {
-		len *= 2;
-		arr = realloc(arr, len);
+	printf("Array: [");
+	for (int i = 0; i < pos; i++) {
+		printf(" %ld ", arr[i]);
 	}
-	arr[pos] = 0;
-
+	printf("]\n");
 	return arr;
 }
 
