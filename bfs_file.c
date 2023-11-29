@@ -80,11 +80,6 @@ int bfs_create_extent(void* extent_block, int size)
 	return 0;
 }
 
-// OPTION 1:
-// Write a function that returns an array of block numbers from an extent
-// OPTION 2: 
-// read all extent data into a big buffer and hop through it 512 bytes at a time 
-
 bfs_block_t* bfs_extent_array(bfs_block_t block_num)
 {
 	struct bfs_extent_header* extent = malloc(bfs_vcb->block_size);
@@ -118,7 +113,7 @@ bfs_block_t* bfs_extent_array(bfs_block_t block_num)
 		len *= 2;
 		arr = realloc(arr, len);
 	}
-	arr[pos++] = 0;
+	arr[pos] = 0;
 
 	return arr;
 }
