@@ -107,6 +107,7 @@ b_io_fd b_open(char* filename, int flags)
 		free(extent_b);
 
 		bfs_create_dir_entry(target_file, fname, 0, extent_loc, 1);
+		target_file->len = INIT_FILE_LEN;
 		
 		struct bfs_dir_entry* parent_dir = malloc(parent_entry->size);
 		LBAread(parent_dir, parent_entry->len, parent_entry->location);
@@ -253,14 +254,7 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	}
 
 	// Before writing, ensure that there are enough blocks to write to
-	int new_size = fcbArray[fd].file->size + count; // in bytes
-	int allocated_size = fcbArray[fd].file->len * bfs_vcb->block_size; // in bytes
-	if (new_size - allocated_size < 0) {
-		fprintf(stderr, "Failed to b_write: new size of file is less than currently allocated size.\n");
-		return (-1);
-	}
-
-	int extra_blocks = bytes_to_blocks(new_size - allocated_size);
+	int extra_blocks = fcbArray[fd].file->size + count + bfs_vcb->block_size - (fcbArray[fd].file->len * bfs_vcb->block_size);
 	// create a new extent leaf for new blocks
 	if (extra_blocks > 0) {
 		fcbArray[fd].file->len += extra_blocks;
@@ -283,7 +277,7 @@ int b_write (b_io_fd fd, char* buffer, int count)
 		LBAwrite(extent_block, 1, fcbArray[fd].file->location);
 
 		// add new block numbers to array
-		fcbArray[fd].block_arr = realloc(fcbArray[fd].block_arr, fcbArray[fd].file->len);
+		fcbArray[fd].block_arr = realloc(fcbArray[fd].block_arr, fcbArray[fd].file->len * bfs_vcb->block_size);
 		int end = fcbArray[fd].file->len - extra_blocks;
 		for(int i = 0; i < extra_blocks; i++) {
 			fcbArray[fd].block_arr[end++] = i + new_extent.ext_block;
@@ -322,9 +316,13 @@ int b_write (b_io_fd fd, char* buffer, int count)
 
 		if (fcbArray[fd].buf_index >= bfs_vcb->block_size) {
 			if (next_block(&fcbArray[fd])) {
+				printf("current block: %d, block_index: %d\n", fcbArray[fd].current_block, fcbArray[fd].block_idx);
+				fprintf(stderr, "next_block in part1 failed\n");
 				return 1;
 			}
+			printf("buf index is %d\n", fcbArray[fd].buf_index);
 			fcbArray[fd].buf_index = 0;
+			printf("buf index is %d\n", fcbArray[fd].buf_index);
 		}
 	}
 
@@ -333,6 +331,7 @@ int b_write (b_io_fd fd, char* buffer, int count)
 		for(int i = 0; i < num_blocks; i++) {
 			blocks_written += LBAwrite(buffer + part1 + (i * bfs_vcb->block_size), 1, fcbArray[fd].current_block);
 			if (next_block(&fcbArray[fd])) {
+				fprintf(stderr, "next_block in part2 failed\n");
 				return 1;
 			}
 		}
@@ -340,10 +339,18 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	}
 
 	if (part3 > 0) {
+		// reading past end of buffer
+		// buffer + part1 > 512? 
+		printf("buf_index: %d part1: %d part2: %d\n",fcbArray[fd].buf_index, part1, part2);
 		memcpy(fcbArray[fd].buf + fcbArray[fd].buf_index, buffer + part1 + part2, part3);
 		blocks_written = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
+		if (next_block(&fcbArray[fd])) {
+			fprintf(stderr, "next_block in part3 failed\n");
+			return 1;
+		}
 
 		fcbArray[fd].buf_index += part3;
+		printf("buffer index is %d\n", fcbArray[fd].buf_index);
 	}
 
 	if (fcbArray[fd].buf_index >= bfs_vcb->block_size) {

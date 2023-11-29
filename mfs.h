@@ -51,7 +51,7 @@ typedef uint64_t bfs_block_t;
 #define NUM_FILES 2048
 #define ROOT_INODE 1;
 #define INIT_DIR_LEN 32
-#define INIT_FILE_LEN 1
+#define INIT_FILE_LEN 16
 
 /*
  * vcb_s: Volume Control Block
