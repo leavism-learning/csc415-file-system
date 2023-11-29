@@ -92,7 +92,7 @@ b_io_fd b_open(char* filename, int flags)
 		// Allocate space for file
 		void* extent_b = malloc(bfs_vcb->block_size);
 		if (bfs_create_extent(extent_b, INIT_FILE_LEN)) {
-			fprintf(stderr, "Unable to create extents for new file %s\n", filename);
+			fprintf(stderr, "Unaile to create extents for new file %s\n", filename);
 			return -1;
 		}
 		bfs_block_t extent_loc = bfs_get_free_blocks(1);
@@ -251,6 +251,8 @@ int b_write (b_io_fd fd, char* buffer, int count)
 		// Double the blocks allocated to the file
 		bfs_block_t extra_buf_loc = bfs_get_free_blocks(fcbArray[fd].file->len + INIT_FILE_LEN);
 	}
+
+	// TODO make into extent
 
 	fcbArray[fd].file->len += extra_blocks;
 	int bytes_available = 0;

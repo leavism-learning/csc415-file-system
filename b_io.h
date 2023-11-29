@@ -18,7 +18,6 @@
 
 #define MAXFCBS 20
 #define B_CHUNK_SIZE 512
-#define INIT_FILE_LEN 16
 
 typedef struct b_fcb {
 	/** TODO add all the information you need in the file control block **/
