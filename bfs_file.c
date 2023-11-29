@@ -97,6 +97,9 @@ bfs_block_t* bfs_extent_array(bfs_block_t block_num)
 
 	// find out how many blocks are needed for extents
 	int len = header.eh_entries * 10;
+	if (len == 0) {
+		return NULL;
+	}
 	bfs_block_t* arr = calloc(len, sizeof(bfs_block_t));
 	int pos = 0;
 	for (int i = 1; i <= header.eh_entries; i++) {
