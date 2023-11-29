@@ -349,7 +349,7 @@ int get_parent_directory_and_filename(const char* path, char** parent_directory,
  *         If no directory separator ('/') is present, returns a copy 
  *         of the entire path.
  *         
- * Note: The caller must ensure to free this memory when it is no longer needed.
+ * @note: The caller must ensure to free this memory when it is no longer needed.
  */
 char* get_filename_from_path(const char* pathname);
 
@@ -371,8 +371,7 @@ char* get_filename_from_path(const char* pathname);
 int bfs_vcb_init(char *name, uint64_t num_blocks, uint64_t block_size);
 
 /**
- * @brief Initializes the Group Descriptor Table (GDT) for the Basic File
- * System (BFS).
+ * @brief Initializes the Group Descriptor Table (GDT)
  *
  * This function populates the GDT with block group descriptors. Each
  * descriptor points to a bitmap that keeps track of free blocks within the
