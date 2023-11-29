@@ -40,17 +40,17 @@ char* fs_getcwd(char* pathname, size_t size)
 // linux chdir
 int fs_setcwd(char* pathname)
 {
-	char* true_path = expand_pathname(pathname);
-	printf("true path is %s\n", true_path);
 	struct bfs_dir_entry file;
 	if (get_file_from_path(&file, pathname)) {
 		return 1;
 	}
+	if (file.file_type != 0) {
+		fprintf(stderr, "Error: %s is not a directory\n", pathname);
+		return 1;
+	}
 
 	free(bfs_path);
-	bfs_path = strdup(true_path);
-
-	printf("got file %s with len %d and loc %ld\n", file.name, file.len, file.location);
+	bfs_path = expand_pathname(pathname);
 
 	int b = bytes_to_blocks(file.size);
 	bfs_cwd = realloc(bfs_cwd, b * bfs_vcb->block_size);
