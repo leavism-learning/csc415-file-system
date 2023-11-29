@@ -108,6 +108,7 @@ b_io_fd b_open(char* filename, int flags)
 			fprintf(stderr, "Unable to get parent dir for %s\n", target_file->name);
 			return -1;
 		}
+		
 		struct bfs_dir_entry* parent_dir = malloc(parent_entry.size);
 		LBAread(parent_dir, parent_entry.len, parent_entry.location);
 		// add the target_file dir entry to the parent dir array
@@ -154,6 +155,7 @@ b_io_fd b_open(char* filename, int flags)
 	bfs_block_t* block_array = bfs_extent_array(target_file->location);
 	if (block_array == NULL) {
 		fprintf(stderr, "Unable to get block array for file %s\n", target_file->name);
+		free(block_array);
 		return 1;
 	}
 
@@ -454,24 +456,18 @@ int b_read (b_io_fd fd, char * buffer, int count)
 // Interface to Close the file	
 int b_close (b_io_fd fd)
 {
-	// Write remaining content from fd's buffer onto disk
+	// There shouldn't be any content in the buffer, but
+	// we'll let the user know just in case.
 	if (fcbArray[fd].buf_index > 0) {
-		// There shouldn't be in anything in the buffer when O_RDONLY is set
-		// but checking anyway. We write the error if it's read-only, otherwise
-		// we write the remaining buffer.
-		if (fcbArray[fd].access_mode & O_RDONLY) {
-			fprintf(stderr, "Couldn't write remaining buffer on b_close.\n");
-		} else {
-			LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
-		}
+		fprintf(stderr, "b_close: there was content in the buffer that was lost.\n");
 	}
 
-	// TODO Calculate the actual amount of blocks the file used. It might've not used all 16 blocks.
-
-	// TODO Write dir array to disk
-
-	// TODO free the fd from memory
-		return 0;
+	// Free the fd from memory
+	free(fcbArray[fd].buf);
+	fcbArray[fd].buf = NULL;
+	fcbArray[fd].file = NULL;
+	fcbArray[fd].block_arr = NULL;
+	return 0;
 }
 
 int b_move(char *dest, char* src) 
