@@ -277,9 +277,9 @@ int bfs_clear_extents(struct bfs_dir_entry* entry)
 int fs_stat(const char* path, struct fs_stat* buf) 
 {
 	struct bfs_dir_entry dir_entry;
-	const char* copy_path = strdup(path); 
-	if (!get_file_from_path(&dir_entry, (char*)copy_path))
+	if (get_file_from_path(&dir_entry, path))
 	{
+		fprintf(stderr, "Unable to get file %s\n", path);
 		return 1;
 	}
 	buf->st_blksize = bfs_vcb->block_size;
