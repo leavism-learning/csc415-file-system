@@ -110,11 +110,9 @@ bfs_block_t* bfs_extent_array(bfs_block_t block_num)
 			arr[pos++] = leaf.ext_block + j;
 		}
 	}
-	printf("Array: [");
-	for (int i = 0; i < pos; i++) {
-		printf(" %ld ", arr[i]);
-	}
-	printf("]\n");
+	// shrink arr to # of elements plus one '0' for list terminator
+	arr[pos++] = 0;
+	arr = realloc(arr, pos * sizeof(bfs_block_t));
 	return arr;
 }
 
