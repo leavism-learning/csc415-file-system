@@ -172,7 +172,7 @@ b_io_fd b_open(char* filename, int flags)
 
 	fcbArray[returnFd].buf = buffer;
 	fcbArray[returnFd].buf_index = 0;
-	fcbArray[returnFd].buf_size = 0;
+	fcbArray[returnFd].buf_size = bfs_vcb->block_size;
 	fcbArray[returnFd].access_mode = flags;
 	fcbArray[returnFd].block_arr = block_array;
 	fcbArray[returnFd].current_block = fcbArray[returnFd].block_arr[0];
@@ -465,6 +465,8 @@ int b_read (b_io_fd fd, char * buffer, int count)
 		part2 = num_blocks  * bfs_vcb->block_size;
 		part3 = count - bytes_available - part2;
 	}
+	printf("part1: %d part2: %d part3: %d num_blocks: %d, bytes_available: %d, count: %d\n", 
+		part1, part2, part3, num_blocks, bytes_available, count);
 
 	if (part1 > 0) {
 		memcpy(buffer, fcbArray[fd].buf + fcbArray[fd].buf_index, part1);
@@ -486,14 +488,13 @@ int b_read (b_io_fd fd, char * buffer, int count)
 	if (part3 > 0) {
 		int blocks_read = LBAread(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
 		fcbArray[fd].buf_size = bfs_vcb->block_size;
+
 		if (next_block(&fcbArray[fd])) {
 			fprintf(stderr, "Invalid next block\n");
 			return 1;
 		}
 		fcbArray[fd].buf_index = 0;
-	}
 
-	if (part3 > 0) {
 		memcpy(buffer + part1 + part2, fcbArray[fd].buf + fcbArray[fd].buf_index, part3);
 		fcbArray[fd].buf_index += part3;
 	}
