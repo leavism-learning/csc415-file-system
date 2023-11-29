@@ -445,9 +445,12 @@ int b_read (b_io_fd fd, char * buffer, int count)
 	}
 
 	int bytes_available = fcbArray[fd].buf_size - fcbArray[fd].buf_index;
-	int bytes_written = (fcbArray[fd].current_block * bfs_vcb->block_size) - bytes_available;
+	int bytes_written = (fcbArray[fd].current_block * bfs_vcb->block_size) -
+		(bfs_vcb->block_size - bytes_available);
 
+	printf("count is %d\n", count);
 	if ((count + bytes_written) > fcbArray[fd].file->size) {
+		printf("read requests more bytes than file size\n");
 		count = fcbArray[fd].file->size - bytes_written;
 		if (count < 0) {
 			fprintf(stderr, "Negative count with %d written at block %d", bytes_written, fcbArray[fd].current_block);
