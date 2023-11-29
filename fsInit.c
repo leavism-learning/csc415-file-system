@@ -30,6 +30,11 @@ char* bfs_path = NULL;
 int is_valid_volname(char *name);
 void print_uuid(uint8_t *uuid);
 
+/*
+* Initializes file system with a given number of blocks and block size
+* If the file system does not exist, creates it
+* else, loads the file system matching the BFS_MAGIC number
+*/
 int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize) 
 {
 
@@ -128,8 +133,10 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		LBAread(dir_arr, bfs_vcb->root_len, bfs_vcb->root_loc);
 
 		struct bfs_dir_entry root_here;
-		bfs_create_dir_entry(&dir_arr[0], ".", bfs_vcb->root_len * bfs_vcb->block_size, bfs_vcb->root_loc, 0);
-		bfs_create_dir_entry(&dir_arr[1], "..", bfs_vcb->root_len * bfs_vcb->block_size, bfs_vcb->root_loc, 0);
+		bfs_create_dir_entry(&dir_arr[0], ".", bfs_vcb->root_len * bfs_vcb->block_size, 
+			bfs_vcb->root_loc, 0);
+		bfs_create_dir_entry(&dir_arr[1], "..", bfs_vcb->root_len * bfs_vcb->block_size, 
+			bfs_vcb->root_loc, 0);
 		dir_arr[2].name[0] = '\0';
 
 		LBAwrite(dir_arr, bfs_vcb->root_len, bfs_vcb->root_loc);
@@ -142,6 +149,11 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	return 0;
 }
 
+/* 
+* Frees up the allocated space of the current working directory, group descriptor table
+* and the volume control block
+* Will do one last write of GDT and VCB before freeing
+*/
 void exitFileSystem() 
 {
 	// try to write current GDT and VCB before exiting
@@ -186,6 +198,9 @@ int is_valid_volname(char *string)
 	return 1;
 }
 
+/*
+* Displays the volume's UUID
+*/
 void print_uuid(uint8_t *uuid) 
 {
 	for (int i = 0; i < 16; i++) {
