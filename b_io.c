@@ -115,7 +115,6 @@ b_io_fd b_open(char* filename, int flags)
 			extent_loc, 
 			1
 		);
-		printf("created file with size %ld\n", target_file->size);
 		
 		struct bfs_dir_entry* parent_dir = malloc(parent_entry->size);
 		LBAread(parent_dir, parent_entry->len, parent_entry->location);
@@ -166,9 +165,9 @@ b_io_fd b_open(char* filename, int flags)
 
 	bfs_block_t* block_array = bfs_extent_array(target_file->location);
 	if (block_array == NULL) {
-		fprintf(stderr, "Unable to get block array for file %s\n", target_file->name);
-		free(block_array);
-		return 1;
+		// case for files with size 0
+		block_array = malloc(sizeof(bfs_block_t));
+		*block_array = 0;
 	}
 
 	fcbArray[returnFd].buf = buffer;
@@ -431,6 +430,12 @@ int b_read (b_io_fd fd, char * buffer, int count)
 		return -1; 			//empty fd
 	}
 
+	// check if file is size 0
+	if (fcbArray[fd].file->size == 0) {
+		buffer[0] = '\0';
+		return 0;
+	}
+
 	int bytes_read = fcbArray[fd].block_idx * bfs_vcb->block_size + fcbArray[fd].buf_index + 1;
 
 	if (bytes_read >= fcbArray[fd].file->size) {
@@ -441,11 +446,6 @@ int b_read (b_io_fd fd, char * buffer, int count)
 
 	int bytes_available = fcbArray[fd].buf_size - fcbArray[fd].buf_index;
 	int bytes_written = (fcbArray[fd].current_block * bfs_vcb->block_size) - bytes_available;
-
-	if (fcbArray[fd].file->size == 0) {
-		buffer[0] = '\0';
-		return 0;
-	}
 
 	if ((count + bytes_written) > fcbArray[fd].file->size) {
 		count = fcbArray[fd].file->size - bytes_written;
