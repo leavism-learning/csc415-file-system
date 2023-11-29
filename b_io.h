@@ -29,6 +29,7 @@ typedef struct b_fcb {
 	int block_idx;		// index in block_arr
 	int current_block;   // current block number  
 	struct bfs_dir_entry* file; // Holds the file info
+	struct bfs_dir_entry* parent_dir_entry;
 } b_fcb;
 
 typedef int b_io_fd;

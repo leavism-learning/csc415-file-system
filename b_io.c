@@ -64,35 +64,39 @@ b_io_fd b_open(char* filename, int flags)
 		return (-1);
 	}
 
+	char* parent_path = expand_pathname(filename);
+	char* parent_dir;
+	char* fname;
+	if (get_parent_directory_and_filename(filename, &parent_dir, &fname)) {
+		fprintf(stderr, "Unable to parse %s\n", parent_path);
+		return (-1);
+	}
+
+	struct bfs_dir_entry* parent_entry = malloc(sizeof(struct bfs_dir_entry));
+	if (get_file_from_path(parent_entry, parent_dir)) {
+		fprintf(stderr, "Unable to find directory %s\n", parent_dir);
+		return (-1);
+	}
+
 	struct bfs_dir_entry* target_file = malloc(sizeof(struct bfs_dir_entry));
 	if (target_file == NULL) {
 		fprintf(stderr, "Failed to allocate memory for bfs_dir_entry.\n");
 		return (-1);
 	}
+
 	// Handle when file doesn't exist
-	if (get_file_from_path(target_file, filename)) {
+	if (get_file_from_path(target_file, fname)) {
 		// When file doesn't exist and O_CREAT is set, create the file
 		if (!(flags & O_CREAT)) {
-			fprintf(stderr, "Cannot b_open %s. File does not exist and create flag has not been set.\n", filename);
+			fprintf(stderr, "Cannot b_open %s. File does not exist and create flag has not been set.\n", fname);
 			free(target_file);
 			return (-1);
-		}
-
-		char* parent_path = expand_pathname(filename);
-		char* last_slash = strrchr(parent_path, '/');
-		char* filename = NULL;
-		if (last_slash != NULL) {
-			filename = strdup(last_slash + 1);
-			*last_slash = '\0';
-		}
-		if (strlen(parent_path) < 1) {
-			parent_path = strdup("/");
 		}
 
 		// Allocate space for file
 		void* extent_b = malloc(bfs_vcb->block_size);
 		if (bfs_create_extent(extent_b, INIT_FILE_LEN)) {
-			fprintf(stderr, "Unaile to create extents for new file %s\n", filename);
+			fprintf(stderr, "Unable to create extents for new file %s\n", fname);
 			return -1;
 		}
 		bfs_block_t extent_loc = bfs_get_free_blocks(1);
@@ -102,12 +106,7 @@ b_io_fd b_open(char* filename, int flags)
 		}
 		free(extent_b);
 
-		bfs_create_dir_entry(target_file, filename, 0, extent_loc, 1);
-		struct bfs_dir_entry parent_entry;
-		if (get_file_from_path(&parent_entry, parent_path)) {
-			fprintf(stderr, "Unable to get parent dir for %s\n", target_file->name);
-			return -1;
-		}
+		bfs_create_dir_entry(target_file, fname, 0, extent_loc, 1);
 		
 		struct bfs_dir_entry* parent_dir = malloc(parent_entry.size);
 		LBAread(parent_dir, parent_entry.len, parent_entry.location);
@@ -143,6 +142,7 @@ b_io_fd b_open(char* filename, int flags)
 	}
 
 	memcpy(fcbArray[returnFd].file, target_file, sizeof(struct bfs_dir_entry));
+	memcpy(fcbArray[returnFd].parent_dir_entry, parent_entry, sizeof(struct bfs_dir_entry));
 
 	// Initialize the b_fcb struct
 	char* buffer = malloc(bfs_vcb->block_size);
@@ -464,9 +464,12 @@ int b_close (b_io_fd fd)
 
 	// Free the fd from memory
 	free(fcbArray[fd].buf);
+	free(fcbArray[fd].file);
+	free(fcbArray[fd].parent_dir_entry);
 	fcbArray[fd].buf = NULL;
 	fcbArray[fd].file = NULL;
 	fcbArray[fd].block_arr = NULL;
+	fcbArray[fd].parent_dir_entry = NULL;
 	return 0;
 }
 
