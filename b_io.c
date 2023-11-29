@@ -220,22 +220,8 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 		fcbArray[fd].buf_index += offset;
 	}
 
+	fcbArray[fd].file->date_accessed = time(NULL);
 
-
-    // switch(whence)
-    // {
-    //     case 0 : 
-    //         fcbArray[fd].buf_index = actualOffset;     // For SEEK_SET   
-    //         break;
-    //     case 1 : 
-    //         fcbArray[fd].buf_index += actualOffset;   // For SEEK_CUR
-    //         break;
-    //     case 2 : 
-    //         fcbArray[fd].buf_index = fcbArray[fd].file->size + actualOffset;    // For SEEK_END
-    //         break;
-    //     default:
-    //         break;
-    // }
 
     // returns the new start point
     return fcbArray[fd].buf_index;
