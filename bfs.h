@@ -349,7 +349,7 @@ int get_parent_directory_and_filename(const char* path, char** parent_directory,
  *         If no directory separator ('/') is present, returns a copy 
  *         of the entire path.
  *         
- * @note: The caller must ensure to free this memory when it is no longer needed.
+ * @note The caller must ensure to free this memory when it is no longer needed.
  */
 char* get_filename_from_path(const char* pathname);
 

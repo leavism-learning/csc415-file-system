@@ -25,7 +25,7 @@ void bit_set(uint8_t* byte, uint8_t position)
 	*byte |= (1 << position);
 }
 
-int block_bit_set(uint8_t *bitmap, uint8_t position)
+int block_bit_set(uint8_t* bitmap, uint8_t position)
 {
 	if (position >= bfs_vcb->block_size || position < 0) {
 		fprintf(stderr, "Error: position is out of bounds.\n");
