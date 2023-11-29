@@ -108,8 +108,8 @@ b_io_fd b_open(char* filename, int flags)
 
 		bfs_create_dir_entry(target_file, fname, 0, extent_loc, 1);
 		
-		struct bfs_dir_entry* parent_dir = malloc(parent_entry.size);
-		LBAread(parent_dir, parent_entry.len, parent_entry.location);
+		struct bfs_dir_entry* parent_dir = malloc(parent_entry->size);
+		LBAread(parent_dir, parent_entry->len, parent_entry->location);
 		// add the target_file dir entry to the parent dir array
 		int i = 2;
 		struct bfs_dir_entry d = parent_dir[i];
@@ -118,7 +118,7 @@ b_io_fd b_open(char* filename, int flags)
 		}
 		parent_dir[i] = *target_file;
 		parent_dir[++i].name[0] = '\0';
-		LBAwrite(parent_dir, parent_entry.len, parent_entry.location);
+		LBAwrite(parent_dir, parent_entry->len, parent_entry->location);
 		free(parent_dir);
 	}
 
@@ -141,7 +141,10 @@ b_io_fd b_open(char* filename, int flags)
 		return (-1);
 	}
 
+	fcbArray[returnFd].parent_dir_entry = malloc(sizeof(struct bfs_dir_entry));
+
 	memcpy(fcbArray[returnFd].file, target_file, sizeof(struct bfs_dir_entry));
+	
 	memcpy(fcbArray[returnFd].parent_dir_entry, parent_entry, sizeof(struct bfs_dir_entry));
 
 	// Initialize the b_fcb struct
@@ -164,10 +167,9 @@ b_io_fd b_open(char* filename, int flags)
 	fcbArray[returnFd].buf_size = 0;
 	fcbArray[returnFd].access_mode = flags;
 	fcbArray[returnFd].block_arr = block_array;
-	next_block(&fcbArray[returnFd]);
+	fcbArray[returnFd].current_block = fcbArray[returnFd].block_arr[0];
 
-	free(buffer);
-	return (returnFd); // all set
+	return returnFd; // all set
 }
 
 // Interface to seek function	
@@ -259,14 +261,36 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	}
 
 	int extra_blocks = bytes_to_blocks(new_size - allocated_size);
+	// create a new extent leaf for new blocks
 	if (extra_blocks > 0) {
-		// Double the blocks allocated to the file
-		bfs_block_t extra_buf_loc = bfs_get_free_blocks(fcbArray[fd].file->len + INIT_FILE_LEN);
+		fcbArray[fd].file->len += extra_blocks;
+		struct bfs_extent new_extent;
+		new_extent.ext_len = extra_blocks;
+		new_extent.ext_block = bfs_get_free_blocks(extra_blocks);
+		
+		struct bfs_extent* extent_block = malloc(bfs_vcb->block_size);
+		LBAread(extent_block, 1, fcbArray[fd].file->location);
+		struct bfs_extent_header header = ((struct bfs_extent_header*) extent_block)[0]; 
+		// if entries >= max, need to adjust extents
+		if (header.eh_entries >= header.eh_max) {
+			// TODO add support for collapsing extents in this case
+			fprintf(stderr, "All entries in header used\n");
+			return 1;
+		}
+
+		extent_block[++header.eh_entries] = new_extent;
+		
+		LBAwrite(extent_block, 1, fcbArray[fd].file->location);
+
+		// add new block numbers to array
+		fcbArray[fd].block_arr = realloc(fcbArray[fd].block_arr, fcbArray[fd].file->len);
+		int end = fcbArray[fd].file->len - extra_blocks;
+		for(int i = 0; i < extra_blocks; i++) {
+			fcbArray[fd].block_arr[end++] = i + new_extent.ext_block;
+		}
+		fcbArray[fd].block_arr[end] = 0;
 	}
 
-	// TODO make into extent
-
-	fcbArray[fd].file->len += extra_blocks;
 	int bytes_available = 0;
 	int bytes_delivered = 0;
 	if  (fcbArray[fd].file->size < 1) {
@@ -335,7 +359,11 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	bytes_delivered = part1 + part2 + part3;
 	fcbArray[fd].file->size += bytes_delivered;
 
-	// todo write to parent dir
+	struct bfs_dir_entry* directory = malloc(fcbArray[fd].parent_dir_entry->len * bfs_vcb->block_size);
+	LBAread(directory, fcbArray[fd].parent_dir_entry->len, fcbArray[fd].parent_dir_entry->location);
+	int idx = find_file(fcbArray[fd].file->name, directory);
+	directory[idx] = *fcbArray[fd].file;
+	LBAwrite(directory, fcbArray[fd].parent_dir_entry->len, fcbArray[fd].parent_dir_entry->location);
 
 	return bytes_delivered;
 }
