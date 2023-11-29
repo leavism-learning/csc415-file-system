@@ -192,20 +192,50 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
         return 0;
     }
 
-    switch(whence)
-    {
-        case 0 : 
-            fcbArray[fd].buf_index = offset;     // For SEEK_SET   
-            break;
-        case 1 : 
-            fcbArray[fd].buf_index += offset;   // For SEEK_CUR
-            break;
-        case 2 : 
-            fcbArray[fd].buf_index = fcbArray[fd].file->size + offset;    // For SEEK_END
-            break;
-        default:
-            break;
-    }
+	int numOfBlocks = offset / B_CHUNK_SIZE;
+	off_t actualOffset = offset - (B_CHUNK_SIZE * numOfBlocks);
+
+	if(whence & SEEK_SET)
+	{
+		fcbArray[fd].current_block = fcbArray[fd].block_arr[numOfBlocks];
+		fcbArray[fd].block_idx = numOfBlocks;
+		fcbArray[fd].buf_index = actualOffset;
+	}
+	else if(whence & SEEK_CUR)
+	{
+		//maybe not needed
+		// fcbArray[fd].current_block += fcbArray[fd].block_arr[numOfBlocks];
+		// fcbArray[fd].block_idx += numOfBlocks;
+
+		fcbArray[fd].buf_index += actualOffset;
+	}
+	else if(whence & SEEK_END)
+	{
+		//TODO: handle case of size being multiple of chunk size
+
+		int last_indx_block_arr = fcbArray[fd].file->size / B_CHUNK_SIZE;
+		fcbArray[fd].current_block = fcbArray[fd].block_arr[last_indx_block_arr];
+
+		fcbArray[fd].buf_index = fcbArray[fd].file->size - fcbArray[fd].file->size*last_indx_block_arr;
+		fcbArray[fd].buf_index += offset;
+	}
+
+
+
+    // switch(whence)
+    // {
+    //     case 0 : 
+    //         fcbArray[fd].buf_index = actualOffset;     // For SEEK_SET   
+    //         break;
+    //     case 1 : 
+    //         fcbArray[fd].buf_index += actualOffset;   // For SEEK_CUR
+    //         break;
+    //     case 2 : 
+    //         fcbArray[fd].buf_index = fcbArray[fd].file->size + actualOffset;    // For SEEK_END
+    //         break;
+    //     default:
+    //         break;
+    // }
 
     // returns the new start point
     return fcbArray[fd].buf_index;
