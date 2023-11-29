@@ -71,25 +71,24 @@ void reload_cwd() {
 	}
 }
 
-// Helper function to get parent directory and filename
 int get_parent_directory_and_filename(const char* path, char** parent_directory, char** filename) 
 {
 	char* full_path = expand_pathname(path);
-    char* last_slash = strrchr(full_path, '/');
+	char* last_slash = strrchr(full_path, '/');
 
-    if (last_slash != NULL) {
-        *filename = strdup(last_slash + 1);
-        *last_slash = '\0';
-    } else {
-        *filename = full_path;
-    }
+	if (last_slash != NULL) {
+			*filename = strdup(last_slash + 1);
+			*last_slash = '\0';
+	} else {
+			*filename = full_path;
+	}
 
-    if (strlen(full_path) < 1) {
-        *parent_directory = strdup("/");
-    } else {
-        *parent_directory = strdup(full_path);
-    }
+	if (strlen(full_path) < 1) {
+			*parent_directory = strdup("/");
+	} else {
+			*parent_directory = strdup(full_path);
+	}
 
-    free(full_path);
-    return 0;
+	free(full_path);
+	return 0;
 }
