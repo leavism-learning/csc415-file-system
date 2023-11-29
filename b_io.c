@@ -168,6 +168,13 @@ b_io_fd b_open(char* filename, int flags)
 		// case for files with size 0
 		block_array = malloc(sizeof(bfs_block_t));
 		*block_array = 0;
+	} else {
+		// read 1st block into buffer
+		if (LBAread(buffer, 1, block_array[0]) != 1) {
+			fprintf(stderr, "Unable to read block %ld\n", block_array[0]);
+			return 1;
+		}
+		printf("buffer is %s\n", buffer);
 	}
 
 	fcbArray[returnFd].buf = buffer;
@@ -264,7 +271,6 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	int extra_blocks = bytes_to_blocks(count);
 	// create a new extent leaf for new blocks
 	if (extra_blocks > 0) {
-		printf("getting %d extra blocks\n", extra_blocks);
 		fcbArray[fd].file->len += extra_blocks;
 		struct bfs_extent new_extent;
 		new_extent.ext_len = extra_blocks;
@@ -448,12 +454,11 @@ int b_read (b_io_fd fd, char * buffer, int count)
 	int bytes_written = (fcbArray[fd].current_block * bfs_vcb->block_size) -
 		(bfs_vcb->block_size - bytes_available);
 
-	printf("count is %d\n", count);
 	if ((count + bytes_written) > fcbArray[fd].file->size) {
-		printf("read requests more bytes than file size\n");
 		count = fcbArray[fd].file->size - bytes_written;
 		if (count < 0) {
-			fprintf(stderr, "Negative count with %d written at block %d", bytes_written, fcbArray[fd].current_block);
+			fprintf(stderr, "Negative count with %d at block %d", 
+		   		bytes_written, fcbArray[fd].current_block);
 		}
 	}
 
