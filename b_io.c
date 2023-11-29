@@ -22,7 +22,8 @@ int next_block(b_fcb* fcb)
 {
 	fcb->current_block = fcb->block_arr[fcb->block_idx++];
 	if (fcb->current_block == 0) {
-		fprintf(stderr, "Current block is 0!\n");
+		fprintf(stderr, "Error: Advancing to index %d (block %ld) overflows\n",
+		  fcb->block_idx - 1, fcb->block_arr[fcb->block_idx - 1]);
 		return 1;
 	}
 	return 0;
@@ -95,7 +96,7 @@ b_io_fd b_open(char* filename, int flags)
 
 		// Allocate space for file
 		void* extent_b = malloc(bfs_vcb->block_size);
-		if (bfs_create_extent(extent_b, INIT_FILE_LEN)) {
+		if (bfs_create_extent(extent_b, INIT_FILE_LEN * bfs_vcb->block_size)) {
 			fprintf(stderr, "Unable to create extents for new file %s\n", fname);
 			return -1;
 		}
@@ -105,6 +106,7 @@ b_io_fd b_open(char* filename, int flags)
 			return -1;
 		}
 		free(extent_b);
+		extent_b = NULL;
 
 		bfs_create_dir_entry(target_file, fname, 0, extent_loc, 1);
 		target_file->len = INIT_FILE_LEN;
@@ -254,9 +256,10 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	}
 
 	// Before writing, ensure that there are enough blocks to write to
-	int extra_blocks = fcbArray[fd].file->size + count + bfs_vcb->block_size - (fcbArray[fd].file->len * bfs_vcb->block_size);
+	int extra_blocks = bytes_to_blocks(count);
 	// create a new extent leaf for new blocks
 	if (extra_blocks > 0) {
+		printf("getting %d extra blocks\n", extra_blocks);
 		fcbArray[fd].file->len += extra_blocks;
 		struct bfs_extent new_extent;
 		new_extent.ext_len = extra_blocks;
