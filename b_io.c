@@ -294,13 +294,12 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	// create a new extent leaf for new blocks
 	if (extra_blocks > 0) {
 		fcbArray[fd].file->len += extra_blocks;
-		struct bfs_extent new_ext_leaf;
-		new_ext_leaf.ext_len = extra_blocks;
-		new_ext_leaf.ext_block = bfs_get_free_blocks(extra_blocks);
-		
+
+		// get existing extent block
 		struct bfs_extent* extent_block = malloc(bfs_vcb->block_size);
 		LBAread(extent_block, 1, fcbArray[fd].file->location);
 		struct bfs_extent_header* header = ((struct bfs_extent_header*) extent_block); 
+
 		// if entries >= max, need to adjust extents
 		if (header[0].eh_entries >= header[0].eh_max) {
 			printf("Reallocating space, max: %d\n", header[0].eh_max);
@@ -366,21 +365,21 @@ int b_write (b_io_fd fd, char* buffer, int count)
 
 			fprintf(stderr, "All entries in header used\n");
 			free(file_data);
+		} else {
+			struct bfs_extent new_ext_leaf;
+			new_ext_leaf.ext_len = extra_blocks;
+			new_ext_leaf.ext_block = bfs_get_free_blocks(extra_blocks);
+
+			extent_block[++(header[0].eh_entries)] = new_ext_leaf;
+
+			LBAwrite(extent_block, 1, fcbArray[fd].file->location);
 		}
 
-		extent_block[++(header[0].eh_entries)] = new_ext_leaf;
-		
-		LBAwrite(extent_block, 1, fcbArray[fd].file->location);
 		free(extent_block);
 
 		// add new block numbers to array
-		fcbArray[fd].block_arr = realloc(fcbArray[fd].block_arr, 
-				(fcbArray[fd].file->len + 1) * sizeof(bfs_block_t));
-		int end = fcbArray[fd].file->len - extra_blocks;
-		for(int i = 0; i < extra_blocks; i++) {
-			fcbArray[fd].block_arr[end++] = i + new_ext_leaf.ext_block;
-		}
-		fcbArray[fd].block_arr[end] = 0;
+		free(fcbArray[fd].block_arr);
+		fcbArray[fd].block_arr = bfs_extent_array(fcbArray[fd].file->location);
 
 		// if necessary, move block pointer to inital block 
 		// only if writing to empty file 
