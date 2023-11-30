@@ -27,7 +27,7 @@ typedef struct b_fcb {
 	int access_mode;	// The current access mode
 	bfs_block_t* block_arr;		// array of block numbers
 	int block_idx;		// index in block_arr
-	int current_block;   // current block number  
+	bfs_block_t current_block;   // current block number  
 	struct bfs_dir_entry* file; // Holds the file info
 	struct bfs_dir_entry* parent_dir_entry;
 } b_fcb;

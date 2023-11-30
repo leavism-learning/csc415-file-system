@@ -27,6 +27,8 @@ int next_block(b_fcb* fcb)
 		  fcb->block_idx - 1, fcb->block_arr[fcb->block_idx - 1]);
 		return 1;
 	}
+	LBAread(fcb->buf, 1, fcb->current_block);
+	printf("New buffer is block %ld\n", fcb->current_block);
 	return 0;
 }
 
@@ -288,6 +290,7 @@ int b_write (b_io_fd fd, char* buffer, int count)
 		fprintf(stderr, "File does not exist.");
 		return -1;
 	}
+	printf("writing to file %s\n", fcbArray[fd].file->name);
 
 	// Before writing, ensure that there are enough blocks to write to
 	int extra_blocks = bytes_to_blocks(count);
@@ -388,7 +391,6 @@ int b_write (b_io_fd fd, char* buffer, int count)
 				fprintf(stderr, "Wrote extra blocks but current block is still 0\n");
 				return 1;
 			}
-			fcbArray[fd].block_idx = 0;
 		}
 	}
 
@@ -415,18 +417,20 @@ int b_write (b_io_fd fd, char* buffer, int count)
 		part3 = (count - bytes_available) - part2;
 	}
 
-	printf("part1: %d part2: %d part3: %d num_blocks: %d, bytes_available: %d, count: %d, extra_blocks: %d\n", 
-		part1, part2, part3, num_blocks, bytes_available, count, extra_blocks);
+	printf("part1: %d part2: %d part3: %d num_blocks: %d, bytes_available: %d, count: %d, extra_blocks: %d buf index: %d\n", 
+		part1, part2, part3, num_blocks, bytes_available, count, extra_blocks, fcbArray[fd].buf_index);
 
 	if (part1 > 0) {
 		memcpy(fcbArray[fd].buf + fcbArray[fd].buf_index, buffer, part1);
 		
 		blocks_written = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
+		printf("part1 wrote <%s> to file %ld\n", fcbArray[fd].buf + fcbArray[fd].buf_index, fcbArray[fd].current_block);
+
 		fcbArray[fd].buf_index += part1;
 
 		if (fcbArray[fd].buf_index >= bfs_vcb->block_size) {
 			if (next_block(&fcbArray[fd])) {
-				printf("current block: %d, block_index: %d\n", fcbArray[fd].current_block, fcbArray[fd].block_idx);
+				printf("current block: %ld, block_index: %d\n", fcbArray[fd].current_block, fcbArray[fd].block_idx);
 				fprintf(stderr, "next_block in part1 failed\n");
 				return 1;
 			}
@@ -437,6 +441,7 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	if (part2 > 0) {
 		int block_written = 0;
 		for(int i = 0; i < num_blocks; i++) {
+			printf("part2 wrote <%s> to file\n", buffer + part1 + (i * bfs_vcb->block_size));
 			blocks_written += LBAwrite(buffer + part1 + (i * bfs_vcb->block_size), 1, fcbArray[fd].current_block);
 			if (next_block(&fcbArray[fd])) {
 				fprintf(stderr, "next_block in part2 failed\n");
@@ -450,6 +455,7 @@ int b_write (b_io_fd fd, char* buffer, int count)
 		// reading past end of buffer
 		// buffer + part1 > 512? 
 		memcpy(fcbArray[fd].buf + fcbArray[fd].buf_index, buffer + part1 + part2, part3);
+		printf("part3 wrote <%s> to file\n", fcbArray[fd].buf + fcbArray[fd].buf_index);
 		blocks_written = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
 		if (next_block(&fcbArray[fd])) {
 			fprintf(stderr, "next_block in part3 failed\n");
@@ -551,7 +557,7 @@ int b_read (b_io_fd fd, char * buffer, int count)
 	if ((count + bytes_written) > fcbArray[fd].file->size) {
 		count = fcbArray[fd].file->size - bytes_written;
 		if (count < 0) {
-			fprintf(stderr, "Negative count with %d at block %d", 
+			fprintf(stderr, "Negative count with %d at block %ld", 
 		   		bytes_written, fcbArray[fd].current_block);
 		}
 	}
@@ -573,6 +579,12 @@ int b_read (b_io_fd fd, char * buffer, int count)
 	if (part1 > 0) {
 		memcpy(buffer, fcbArray[fd].buf + fcbArray[fd].buf_index, part1);
 		fcbArray[fd].buf_index += part1;
+
+		if (next_block(&fcbArray[fd])) {
+			printf("current block: %ld, block_index: %d\n", fcbArray[fd].current_block, fcbArray[fd].block_idx);
+			fprintf(stderr, "next_block in part1 failed\n");
+			return 1;
+		}
 	}
 
 	if (part2 > 0) {
