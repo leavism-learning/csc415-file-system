@@ -83,6 +83,7 @@ int bfs_create_extent(void* extent_block, int size)
 bfs_block_t* bfs_extent_array(bfs_block_t block_num)
 {
 	struct bfs_extent_header* extent = malloc(bfs_vcb->block_size);
+	printf("reading extent at %ld\n", block_num);
 	if (LBAread(extent, 1, block_num) != 1) {
 		fprintf(stderr, "Unable to LBAread extent at block %ld\n", block_num);
 		return NULL;
@@ -119,7 +120,7 @@ bfs_block_t* bfs_extent_array(bfs_block_t block_num)
 	return arr;
 }
 
-int bfs_read_extent(void* data, bfs_block_t block_num) 
+int bfs_write_extent_data(void* data, bfs_block_t block_num) 
 {
 	struct bfs_extent_header* extent = malloc(bfs_vcb->block_size);
 	if (LBAread(extent, 1, block_num) != 1) {
@@ -143,10 +144,49 @@ int bfs_read_extent(void* data, bfs_block_t block_num)
 		data_len += leaf.ext_len;
 	}
 
-	if (data == NULL) {
-		data = malloc(data_len * bfs_vcb->block_size);
-	} else {
-		data = realloc(data, data_len * bfs_vcb->block_size);
+	// yes this is dumb, but it works
+	bfs_block_t* block_array = bfs_extent_array(block_num);
+	if (block_array == NULL) {
+		fprintf(stderr, "Unable to get block array for %ld\n", block_num);
+		return 1;
+	}
+
+	int i = 0;
+	while (block_array[i] != 0) {
+		void* dest = malloc(bfs_vcb->block_size);
+		memcpy(dest, data + (1 * bfs_vcb->block_size), bfs_vcb->block_size);
+		if (LBAwrite(dest, 1, block_array[i]) != 1) {
+			fprintf(stderr, "Unable to LBAwrite extent data to %ld\n",
+		   		block_array[i]);
+		}
+		free(dest);
+	}
+
+	return 0;
+}
+
+int bfs_read_extent(void* data, bfs_block_t block_num) 
+{
+	struct bfs_extent_header* extent = malloc(bfs_vcb->block_size);
+	if (LBAread(extent, 1, block_num) != 1) {
+		fprintf(stderr, "Unable to LBAread extent at block %ld\n", block_num);
+		return 1;
+	}
+
+	struct bfs_extent_header header = extent[0];
+
+	if (header.eh_depth != 0) {
+		fprintf(stderr, "Error: Extent uses unimplemented indexes\n");
+		return 1;
+	}
+
+	struct bfs_extent* ext_leaves = (struct bfs_extent*) extent;
+
+	// find out how many blocks are needed for extents
+	int data_len = 0;
+	for (int i = 1; i < header.eh_entries; i++) {
+		struct bfs_extent leaf = ext_leaves[i];
+		data_len += leaf.ext_len;
 	}
 
 	// read data 

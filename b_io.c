@@ -13,6 +13,7 @@
 **************************************************************/
 
 #include "b_io.h"
+#include "bfs.h"
 
 b_fcb fcbArray[MAXFCBS];
 
@@ -166,16 +167,16 @@ b_io_fd b_open(char* filename, int flags)
 	bfs_block_t* block_array = bfs_extent_array(target_file->location);
 	if (block_array == NULL) {
 		// case for files with size 0
+		printf("reading from empty file\n");
 		block_array = malloc(sizeof(bfs_block_t));
 		*block_array = 0;
-	} else {
-		// read 1st block into buffer
-		if (LBAread(buffer, 1, block_array[0]) != 1) {
-			fprintf(stderr, "Unable to read block %ld\n", block_array[0]);
-			return 1;
-		}
-		printf("buffer is %s\n", buffer);
+	} 
+	
+	if (LBAread(buffer, 1, block_array[0]) != 1) {
+		fprintf(stderr, "Unable to read block %ld\n", block_array[0]);
+		return 1;
 	}
+	printf("buffer is %s\n", buffer);
 
 	fcbArray[returnFd].buf = buffer;
 	fcbArray[returnFd].buf_index = 0;
@@ -269,31 +270,95 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	// create a new extent leaf for new blocks
 	if (extra_blocks > 0) {
 		fcbArray[fd].file->len += extra_blocks;
-		struct bfs_extent new_extent;
-		new_extent.ext_len = extra_blocks;
-		new_extent.ext_block = bfs_get_free_blocks(extra_blocks);
+		struct bfs_extent new_ext_leaf;
+		new_ext_leaf.ext_len = extra_blocks;
+		new_ext_leaf.ext_block = bfs_get_free_blocks(extra_blocks);
 		
 		struct bfs_extent* extent_block = malloc(bfs_vcb->block_size);
 		LBAread(extent_block, 1, fcbArray[fd].file->location);
-		struct bfs_extent_header header = ((struct bfs_extent_header*) extent_block)[0]; 
+		struct bfs_extent_header* header = ((struct bfs_extent_header*) extent_block); 
 		// if entries >= max, need to adjust extents
-		if (header.eh_entries >= header.eh_max) {
-			// TODO add support for collapsing extents in this case
+		if (header[0].eh_entries >= header[0].eh_max) {
+			printf("Reallocating space\n");
+			// read the extent data into one big buffer
+			void* file_data = malloc(fcbArray[fd].file->size + count);
+			if (bfs_read_extent(file_data, fcbArray[fd].file->location)) {
+				fprintf(stderr, "Error reading file data\n");
+				free(file_data);
+				return -1;
+			}
+
+			// make a new extent for all that data
+			struct bfs_extent_header* new_extent_b = malloc(bfs_vcb->block_size);
+			if (bfs_create_extent(new_extent_b, fcbArray[fd].file->size + count)) {
+				fprintf(stderr, "Error creating new extents\n");
+				free(file_data);
+				return -1;
+			}
+			printf("created new extent block\n");
+			
+			// write new extent block
+			bfs_block_t new_extent_loc = bfs_get_free_blocks(1);
+			LBAwrite(new_extent_b, 1, new_extent_loc);
+
+			// copy file data from old to new buffer
+			if (bfs_write_extent_data(file_data, new_extent_loc)) {
+				fprintf(stderr, "Unable to write file data to new extent\n");
+				free(file_data);
+				return -1;
+			}
+			// free old extents
+			if (bfs_clear_extents(fcbArray[fd].file)) {
+				fprintf(stderr, "Unable to clear old extents \n");
+				free(file_data);
+				return -1;
+			}
+
+			// modify inode to point to new extent block
+			fcbArray[fd].file->location = new_extent_loc;
+			
+			// write modified directory to disk
+			struct bfs_dir_entry* dir = malloc(
+				fcbArray[fd].parent_dir_entry->len * bfs_vcb->block_size);
+
+			LBAread(
+				dir, 
+				fcbArray[fd].parent_dir_entry->len, 
+				fcbArray[fd].parent_dir_entry->location
+			);
+			dir[find_file(fcbArray[fd].file->name, dir)] = *fcbArray[fd].file;
+			LBAwrite(
+				dir,
+				fcbArray[fd].parent_dir_entry->len,
+				fcbArray[fd].parent_dir_entry->location
+			);
+
 			fprintf(stderr, "All entries in header used\n");
-			return 1;
+			free(file_data);
 		}
 
-		extent_block[++header.eh_entries] = new_extent;
+		extent_block[++header[0].eh_entries] = new_ext_leaf;
 		
 		LBAwrite(extent_block, 1, fcbArray[fd].file->location);
 
 		// add new block numbers to array
-		fcbArray[fd].block_arr = realloc(fcbArray[fd].block_arr, fcbArray[fd].file->len * bfs_vcb->block_size);
+		fcbArray[fd].block_arr = realloc(fcbArray[fd].block_arr, 
+				(fcbArray[fd].file->len + 1) * sizeof(bfs_block_t));
 		int end = fcbArray[fd].file->len - extra_blocks;
 		for(int i = 0; i < extra_blocks; i++) {
-			fcbArray[fd].block_arr[end++] = i + new_extent.ext_block;
+			fcbArray[fd].block_arr[end++] = i + new_ext_leaf.ext_block;
 		}
 		fcbArray[fd].block_arr[end] = 0;
+
+		// if necessary, move block pointer to inital block 
+		// only if writing to empty file 
+		if (fcbArray[fd].current_block == 0) {
+			if (next_block(&fcbArray[fd])) {
+				fprintf(stderr, "Wrote extra blocks but current block is still 0\n");
+				return 1;
+			}
+			fcbArray[fd].block_idx = 0;
+		}
 	}
 
 	int bytes_available = 0;
@@ -319,6 +384,9 @@ int b_write (b_io_fd fd, char* buffer, int count)
 		part3 = (count - bytes_available) - part2;
 	}
 
+	printf("part1: %d part2: %d part3: %d num_blocks: %d, bytes_available: %d, count: %d, extra_blocks: %d\n", 
+		part1, part2, part3, num_blocks, bytes_available, count, extra_blocks);
+
 	if (part1 > 0) {
 		memcpy(fcbArray[fd].buf + fcbArray[fd].buf_index, buffer, part1);
 		
@@ -331,9 +399,7 @@ int b_write (b_io_fd fd, char* buffer, int count)
 				fprintf(stderr, "next_block in part1 failed\n");
 				return 1;
 			}
-			printf("buf index is %d\n", fcbArray[fd].buf_index);
 			fcbArray[fd].buf_index = 0;
-			printf("buf index is %d\n", fcbArray[fd].buf_index);
 		}
 	}
 
@@ -352,7 +418,6 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	if (part3 > 0) {
 		// reading past end of buffer
 		// buffer + part1 > 512? 
-		printf("buf_index: %d part1: %d part2: %d\n",fcbArray[fd].buf_index, part1, part2);
 		memcpy(fcbArray[fd].buf + fcbArray[fd].buf_index, buffer + part1 + part2, part3);
 		blocks_written = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
 		if (next_block(&fcbArray[fd])) {
@@ -361,7 +426,6 @@ int b_write (b_io_fd fd, char* buffer, int count)
 		}
 
 		fcbArray[fd].buf_index += part3;
-		printf("buffer index is %d\n", fcbArray[fd].buf_index);
 	}
 
 	if (fcbArray[fd].buf_index >= bfs_vcb->block_size) {
@@ -383,7 +447,6 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	directory[idx] = *fcbArray[fd].file;
 	LBAwrite(directory, fcbArray[fd].parent_dir_entry->len, fcbArray[fd].parent_dir_entry->location);
 
-	printf("done writing, new filesize is %ld\n", fcbArray[fd].file->size);
 	return bytes_delivered;
 }
 
@@ -439,8 +502,10 @@ int b_read (b_io_fd fd, char * buffer, int count)
 		return 0;
 	}
 
-	int bytes_read = fcbArray[fd].block_idx * bfs_vcb->block_size + fcbArray[fd].buf_index + 1;
+	int bytes_read = fcbArray[fd].block_idx * bfs_vcb->block_size + 
+		fcbArray[fd].buf_index;
 
+	printf("bytes_read: %d block_idx: %d buf_index: %d\n", bytes_read, fcbArray[fd].block_idx, fcbArray[fd].buf_index);
 	if (bytes_read >= fcbArray[fd].file->size) {
 		fprintf(stderr, "Requested more bytes (%d) than file size (%ld)\n", 
 		bytes_read, fcbArray[fd].file->size);
@@ -448,7 +513,7 @@ int b_read (b_io_fd fd, char * buffer, int count)
 	}
 
 	int bytes_available = fcbArray[fd].buf_size - fcbArray[fd].buf_index;
-	int bytes_written = (fcbArray[fd].current_block * bfs_vcb->block_size) -
+	int bytes_written = (fcbArray[fd].block_idx * bfs_vcb->block_size) -
 		(bfs_vcb->block_size - bytes_available);
 
 	if ((count + bytes_written) > fcbArray[fd].file->size) {
@@ -513,8 +578,12 @@ int b_close (b_io_fd fd)
 {
 	// There shouldn't be any content in the buffer, but
 	// we'll let the user know just in case.
-	if (fcbArray[fd].buf_index > 0) {
-		fprintf(stderr, "b_close: there was content in the buffer that was lost.\n");
+	if (!(fcbArray[fd].access_mode & O_RDONLY) && fcbArray[fd].buf_index > 0) {
+		if (fcbArray[fd].current_block == 0) {
+			fprintf(stderr, "Error: Current block is 0\n");
+		} else {
+			LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
+		}
 	}
 
 	// Free the fd from memory

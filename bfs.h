@@ -277,6 +277,8 @@ bfs_block_t* bfs_extent_array(bfs_block_t block_num);
  */
 int bfs_delete_file(struct bfs_dir_entry* directory, struct bfs_dir_entry* entry);
 
+int bfs_write_extent_data(void* data, bfs_block_t block_num);
+
 /**************************************************************
  * bfs_helpers.c
  * Helper funcions for Basic File System.
