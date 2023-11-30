@@ -117,6 +117,11 @@ bfs_block_t* bfs_extent_array(bfs_block_t block_num)
 	// shrink arr to # of elements plus one '0' for list terminator
 	arr[pos++] = 0;
 	arr = realloc(arr, pos * sizeof(bfs_block_t));
+	printf("array: [ ");
+	for (int i = 0; i < pos; i++) {
+		printf(" %ld ",arr[i]);
+	}
+	printf("]\n");
 	return arr;
 }
 
@@ -144,7 +149,9 @@ int bfs_write_extent_data(void* data, bfs_block_t block_num)
 		data_len += leaf.ext_len;
 	}
 
-	// yes this is dumb, but it works
+	printf("header is %d entries\n", header.eh_entries);
+	printf("leaf is %ld at block %ld\n", ext_leaves[1].ext_len, ext_leaves[1].ext_block);
+
 	bfs_block_t* block_array = bfs_extent_array(block_num);
 	if (block_array == NULL) {
 		fprintf(stderr, "Unable to get block array for %ld\n", block_num);
@@ -153,13 +160,16 @@ int bfs_write_extent_data(void* data, bfs_block_t block_num)
 
 	int i = 0;
 	while (block_array[i] != 0) {
+		printf("%dth block\n", i);
+		printf("data len is %ld\n", strlen(data));
 		void* dest = malloc(bfs_vcb->block_size);
-		memcpy(dest, data + (1 * bfs_vcb->block_size), bfs_vcb->block_size);
+		memcpy(dest, data + (i * bfs_vcb->block_size), bfs_vcb->block_size);
 		if (LBAwrite(dest, 1, block_array[i]) != 1) {
 			fprintf(stderr, "Unable to LBAwrite extent data to %ld\n",
 		   		block_array[i]);
 		}
 		free(dest);
+		i++;
 	}
 
 	return 0;
@@ -191,9 +201,13 @@ int bfs_read_extent(void* data, bfs_block_t block_num)
 
 	// read data 
 	int pos = 0;
-	for (int i = 0; i < header.eh_entries; i++) {
+	for (int i = 1; i <= header.eh_entries; i++) {
+		printf("reading extent %d out of %d\n", i, header.eh_entries);
 		struct bfs_extent leaf = ext_leaves[i];
-		if (LBAread(data + pos, leaf.ext_len, leaf.ext_block) != leaf.ext_len) {
+		if (LBAread(
+			data + (pos * bfs_vcb->block_size), 
+			leaf.ext_len, leaf.ext_block
+			) != leaf.ext_len) {
 			fprintf(stderr, "Unable to read data blocks %ld\n", leaf.ext_block);
 		}
 		pos += leaf.ext_len;

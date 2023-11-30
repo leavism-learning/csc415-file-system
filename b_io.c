@@ -172,17 +172,19 @@ b_io_fd b_open(char* filename, int flags)
 		*block_array = 0;
 	} 
 	
-	if (LBAread(buffer, 1, block_array[0]) != 1) {
-		fprintf(stderr, "Unable to read block %ld\n", block_array[0]);
-		return 1;
+	if (block_array[0] != 0) {
+		if (LBAread(buffer, 1, block_array[0]) != 1) {
+			fprintf(stderr, "Unable to read block %ld\n", block_array[0]);
+			return 1;
+		}
 	}
-	printf("buffer is %s\n", buffer);
 
 	fcbArray[returnFd].buf = buffer;
 	fcbArray[returnFd].buf_index = 0;
 	fcbArray[returnFd].buf_size = bfs_vcb->block_size;
 	fcbArray[returnFd].access_mode = flags;
 	fcbArray[returnFd].block_arr = block_array;
+	fcbArray[returnFd].block_idx = 0;
 	fcbArray[returnFd].current_block = fcbArray[returnFd].block_arr[0];
 
 	return returnFd; // all set
@@ -282,15 +284,19 @@ int b_write (b_io_fd fd, char* buffer, int count)
 		struct bfs_extent_header* header = ((struct bfs_extent_header*) extent_block); 
 		// if entries >= max, need to adjust extents
 		if (header[0].eh_entries >= header[0].eh_max) {
-			printf("Reallocating space\n");
+			printf("Reallocating space, max: %d\n", header[0].eh_max);
 			// read the extent data into one big buffer
-			void* file_data = malloc(fcbArray[fd].file->size + count);
+			
+			printf("reading file data\n");
+			char* file_data = malloc(bytes_to_blocks(fcbArray[fd].file->size + count) * bfs_vcb->block_size);
 			if (bfs_read_extent(file_data, fcbArray[fd].file->location)) {
 				fprintf(stderr, "Error reading file data\n");
 				free(file_data);
 				return -1;
 			}
+			printf("data is %s\n", file_data);
 
+			printf("creating new extent\n");
 			// make a new extent for all that data
 			struct bfs_extent_header* new_extent_b = malloc(bfs_vcb->block_size);
 			if (bfs_create_extent(new_extent_b, fcbArray[fd].file->size + count)) {
@@ -298,18 +304,20 @@ int b_write (b_io_fd fd, char* buffer, int count)
 				free(file_data);
 				return -1;
 			}
-			printf("created new extent block\n");
 			
+			printf("writing new extent\n");
 			// write new extent block
 			bfs_block_t new_extent_loc = bfs_get_free_blocks(1);
 			LBAwrite(new_extent_b, 1, new_extent_loc);
 
+			printf("writing new file data\n");
 			// copy file data from old to new buffer
 			if (bfs_write_extent_data(file_data, new_extent_loc)) {
 				fprintf(stderr, "Unable to write file data to new extent\n");
 				free(file_data);
 				return -1;
 			}
+			printf("freeing old extents\n");
 			// free old extents
 			if (bfs_clear_extents(fcbArray[fd].file)) {
 				fprintf(stderr, "Unable to clear old extents \n");
@@ -317,6 +325,7 @@ int b_write (b_io_fd fd, char* buffer, int count)
 				return -1;
 			}
 
+			printf("assigning new extents");
 			// modify inode to point to new extent block
 			fcbArray[fd].file->location = new_extent_loc;
 			
@@ -340,7 +349,7 @@ int b_write (b_io_fd fd, char* buffer, int count)
 			free(file_data);
 		}
 
-		extent_block[++header[0].eh_entries] = new_ext_leaf;
+		extent_block[++(header[0].eh_entries)] = new_ext_leaf;
 		
 		LBAwrite(extent_block, 1, fcbArray[fd].file->location);
 
