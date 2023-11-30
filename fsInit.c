@@ -38,7 +38,7 @@ void print_uuid(uint8_t *uuid);
 int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize) 
 {
 
-	printf("Initializing File System with %ld blocks with a block size of %ld\n",
+	printf("Initializing File System with %llu blocks with a block size of %llu\n",
 		numberOfBlocks, blockSize);
 
 	bfs_vcb = malloc(blockSize);
@@ -62,9 +62,9 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		}
 
 		bfs_cwd = malloc(bfs_vcb->block_size * bfs_vcb->root_len);
-		printf("initializing root at %ld\n", bfs_vcb->root_loc);
+		printf("initializing root at %llu\n", bfs_vcb->root_loc);
 		if (LBAread(bfs_cwd, bfs_vcb->root_len, bfs_vcb->root_loc) != bfs_vcb->root_len) {
-			fprintf(stderr, "Error: Unable to LBAread buffer %ld\n", bfs_vcb->root_loc);
+			fprintf(stderr, "Error: Unable to LBAread buffer %llu\n", bfs_vcb->root_loc);
 			free(bfs_cwd);
 			bfs_cwd = NULL;
 			exitFileSystem();
@@ -84,7 +84,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	else {
 
 		// for now, volume name is hardcoded
-		char *volume_name = "NewVolume";
+		char* volume_name = "NewVolume";
 
 		if (!is_valid_volname(volume_name)) {
 			fprintf(stderr, "Invalid volume name \n");
@@ -109,7 +109,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		printf("Initialized gdt with %d groups of size %d\n",
 		 bfs_vcb->block_group_count, bfs_vcb->block_group_size);
 		struct block_group_desc first_entry = bfs_gdt[0];
-		printf("position: %ld  free blocks count: %d\n",
+		printf("position: %llu  free blocks count: %d\n",
 		 first_entry.bitmap_location, first_entry.free_blocks_count);
 		if (LBAwrite(bfs_gdt, bfs_vcb->gdt_len, 1) != 1) {
 			fprintf(stderr, "Error: Unable to LBAwrite GDT to disk\n");
@@ -135,7 +135,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		struct bfs_dir_entry root_here;
 		bfs_create_dir_entry(&dir_arr[0], ".", bfs_vcb->root_len * bfs_vcb->block_size, 
 			bfs_vcb->root_loc, 0);
-		bfs_create_dir_entry(&dir_arr[1], "..", bfs_vcb->root_len * bfs_vcb->block_size, 
+		bfs_create_dir_entry(&dir_arr[1], "..", bfs_vcb->root_len * bfs_vcb->block_size,
 			bfs_vcb->root_loc, 0);
 		dir_arr[2].name[0] = '\0';
 
@@ -183,7 +183,7 @@ void exitFileSystem()
  * Have length 1-63
  * Contain only english alphabet letters and numbers
  */
-int is_valid_volname(char *string) 
+int is_valid_volname(char* string)
 {
 	int len = strlen(string);
 	if (len < 1 || len > 63)
@@ -201,7 +201,7 @@ int is_valid_volname(char *string)
 /*
 * Displays the volume's UUID
 */
-void print_uuid(uint8_t *uuid) 
+void print_uuid(uint8_t* uuid)
 {
 	for (int i = 0; i < 16; i++) {
 		if (i >= 4 && i % 2 == 0 && i < 12)

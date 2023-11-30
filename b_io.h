@@ -1,10 +1,10 @@
 /**************************************************************
-* Class:  CSC-415-0#  Fall 2021
-* Names: 
-* Student IDs:
-* GitHub Name:
-* Group Name:
-* Project: Basic File System
+ * Class:  CSC-415-01 Fall 2023
+ * Names: Griffin Evans, Sukrit Dev Dhawan, Michelle Lang, Giahuy Dang
+ * Student IDs: 922498210, 922432027, 917386319, 922722304
+ * GitHub Name: griffinevans
+ * Group Name: Team CDeez
+ * Project: Basic File System
 *
 * File: b_io.h
 *

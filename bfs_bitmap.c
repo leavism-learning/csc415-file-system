@@ -96,7 +96,7 @@ int bfs_set_block(bfs_block_t block_num)
 {
 	// Find which block group the block belongs to
 	int block_group = block_num / bfs_vcb->block_group_size;
-	uint8_t *bitmap = malloc(bfs_vcb->block_size);
+	uint8_t* bitmap = malloc(bfs_vcb->block_size);
 
 	if (LBAread(bitmap, 1, bfs_gdt[block_group].bitmap_location) != 1) {
 		fprintf(stderr, "Error: Unable to read bitmap for block %ld\n", block_num);
@@ -205,7 +205,7 @@ int bfs_get_free_block()
 		// bitmap and find the first available block
 		if (block_group->free_blocks_count > 0) {
 
-			uint8_t *bitmap = malloc(bfs_vcb->block_size);
+			uint8_t* bitmap = malloc(bfs_vcb->block_size);
 			if (bitmap == NULL) {
 			perror("malloc");
 				return -1;

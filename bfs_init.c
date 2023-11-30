@@ -14,7 +14,7 @@
  **************************************************************/
 #include "bfs.h"
 
-int bfs_vcb_init(char *name, uint64_t num_blocks, uint64_t block_size)
+int bfs_vcb_init(char* name, uint64_t num_blocks, uint64_t block_size)
 {
   // Set parameters for the VCB
   bfs_vcb->block_size = block_size;
@@ -49,7 +49,6 @@ int bfs_gdt_init(struct block_group_desc* gdt)
 
   // Initialize the descriptor and bitmap of each block group
   for (int i = 0; i < bfs_vcb->block_group_count; i++) {
-
     // Initialize the block group descriptor
     struct block_group_desc descriptor;
     descriptor.bitmap_location = bitmap_pos;
@@ -57,7 +56,7 @@ int bfs_gdt_init(struct block_group_desc* gdt)
     descriptor.dirs_count = 0;
 
     // Allocate memory for the block group bitmap
-    uint8_t *bitmap = calloc(bfs_vcb->block_size, 1);
+    uint8_t* bitmap = calloc(bfs_vcb->block_size, 1);
 
     // Mark first block in block group as used for bitmap
     if (block_bit_set(bitmap, 0) != 0) {
@@ -83,7 +82,7 @@ int bfs_gdt_init(struct block_group_desc* gdt)
   return 0;
 }
 
-void bfs_generate_uuid(uint8_t *uuid)
+void bfs_generate_uuid(uint8_t* uuid)
 {
   // fill buffer with random values
   // get_random_bytes(uuid, 16);
