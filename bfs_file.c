@@ -86,11 +86,13 @@ bfs_block_t* bfs_extent_array(bfs_block_t block_num)
 	printf("reading extent at %ld\n", block_num);
 	if (LBAread(extent, 1, block_num) != 1) {
 		fprintf(stderr, "Unable to LBAread extent at block %ld\n", block_num);
+		free(extent);
 		return NULL;
 	}
 	struct bfs_extent_header header = extent[0];
 	if (header.eh_depth != 0) {
 		fprintf(stderr, "Error: Extent uses unimplemented indexes\n");
+		free(extent);
 		return NULL;
 	}
 
@@ -99,6 +101,7 @@ bfs_block_t* bfs_extent_array(bfs_block_t block_num)
 	// find out how many blocks are needed for extents
 	int len = header.eh_entries * 10;
 	if (len == 0) {
+		free(extent);
 		return NULL;
 	}
 	bfs_block_t* arr = calloc(len, sizeof(bfs_block_t));
@@ -122,6 +125,7 @@ bfs_block_t* bfs_extent_array(bfs_block_t block_num)
 		printf(" %ld ",arr[i]);
 	}
 	printf("]\n");
+	free(extent);
 	return arr;
 }
 

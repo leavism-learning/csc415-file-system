@@ -124,12 +124,12 @@ char* expand_pathname(const char* in)
 	
 	// empty string is root
 	if (strlen(result) == 0) {
+		free(input);
 		free(result);
 		result = strdup("/");
 	}
 	// Clean up dynamically allocated memory for the original input
 	free(input);
-
 	return result;
 }
 
@@ -144,9 +144,11 @@ int get_file_from_path(struct bfs_dir_entry* target, const char* path)
 		*last_slash = '\0';
 	}
 	if (strlen(parent_path) < 1) {
+		free(parent_path);
 		parent_path = strdup("/");
 	}
 	if (strlen(filename) < 1) {
+		free(filename);
 		filename = strdup(".");
 	}
 
@@ -162,17 +164,21 @@ int get_file_from_path(struct bfs_dir_entry* target, const char* path)
 		if (index == -1 || current_dir[index].file_type != 0) {
 			fprintf(stderr, "Matching file for %s not found", tok);
 			free(parent_path);
+			free(current_dir);
+			free(filename);
 			return 1;
 		}
 
 		// Find the directory entry of the current token
-		
+
 		struct bfs_dir_entry target_dir = current_dir[index];
 
 		current_dir = realloc(current_dir, target_dir.size);
 		if (LBAread(current_dir, target_dir.len, target_dir.location) != target_dir.len) {
 			fprintf(stderr, "LBAread error in get_file_from_filepath\n");
 			free(parent_path);
+			free(current_dir);
+			free(filename);
 			return 1;
 		}
 		tok = strtok(NULL, "/");
@@ -183,16 +189,16 @@ int get_file_from_path(struct bfs_dir_entry* target, const char* path)
 	int i = find_file(filename, current_dir);
 	if (i == -1) {
 		free(parent_path);
+		free(current_dir);
+		free(filename);
 		return 1;
 	}
 
 	memcpy(target, &current_dir[i], sizeof(struct bfs_dir_entry));
 
 	free(parent_path);
-	parent_path = NULL;
-
 	free(current_dir);
-	current_dir = NULL;
+	free(filename);
 
 	return 0;
 }

@@ -66,23 +66,31 @@ b_io_fd b_open(char* filename, int flags)
 		return (-1);
 	}
 
-	char* parent_path = expand_pathname(filename);
 	char* parent_dir;
 	char* fname;
 	if (get_parent_directory_and_filename(filename, &parent_dir, &fname)) {
-		fprintf(stderr, "Unable to parse %s\n", parent_path);
+		fprintf(stderr, "Unable to parse %s\n", filename);
+		free(parent_dir);
+		free(fname);
 		return (-1);
 	}
 
 	struct bfs_dir_entry* parent_entry = malloc(sizeof(struct bfs_dir_entry));
 	if (get_file_from_path(parent_entry, parent_dir)) {
 		fprintf(stderr, "Unable to find directory %s\n", parent_dir);
+		free(parent_dir);
+		free(fname);
+		free(parent_entry);
 		return (-1);
 	}
 
 	struct bfs_dir_entry* target_file = malloc(sizeof(struct bfs_dir_entry));
 	if (target_file == NULL) {
 		fprintf(stderr, "Failed to allocate memory for bfs_dir_entry.\n");
+		free(parent_dir);
+		free(fname);
+		free(target_file);
+		free(parent_entry);
 		return (-1);
 	}
 
@@ -91,7 +99,10 @@ b_io_fd b_open(char* filename, int flags)
 		// When file doesn't exist and O_CREAT is set, create the file
 		if (!(flags & O_CREAT)) {
 			fprintf(stderr, "Cannot b_open %s. File does not exist and create flag has not been set.\n", fname);
+			free(parent_dir);
+			free(fname);
 			free(target_file);
+			free(parent_entry);
 			return (-1);
 		}
 
@@ -99,11 +110,19 @@ b_io_fd b_open(char* filename, int flags)
 		void* extent_b = malloc(bfs_vcb->block_size);
 		if (bfs_create_extent(extent_b, INIT_FILE_LEN * bfs_vcb->block_size)) {
 			fprintf(stderr, "Unable to create extents for new file %s\n", fname);
+			free(parent_dir);
+			free(fname);
+			free(target_file);
+			free(parent_entry);
 			return -1;
 		}
 		bfs_block_t extent_loc = bfs_get_free_blocks(1);
 		if (LBAwrite(extent_b, 1, extent_loc) != 1) {
 			fprintf(stderr, "error writing new extent block\n");
+			free(parent_dir);
+			free(fname);
+			free(target_file);
+			free(parent_entry);
 			return -1;
 		}
 		free(extent_b);
@@ -129,6 +148,7 @@ b_io_fd b_open(char* filename, int flags)
 		parent_dir[++i].name[0] = '\0';
 		LBAwrite(parent_dir, parent_entry->len, parent_entry->location);
 		free(parent_dir);
+		free(fname);
 	}
 
 	// The rest of this code is handling when the file does exist
@@ -187,6 +207,10 @@ b_io_fd b_open(char* filename, int flags)
 	fcbArray[returnFd].block_idx = 0;
 	fcbArray[returnFd].current_block = fcbArray[returnFd].block_arr[0];
 
+	free(target_file);
+	free(parent_entry);
+	free(parent_dir);
+	free(fname);
 	return returnFd; // all set
 }
 
@@ -349,6 +373,7 @@ int b_write (b_io_fd fd, char* buffer, int count)
 		extent_block[++(header[0].eh_entries)] = new_ext_leaf;
 		
 		LBAwrite(extent_block, 1, fcbArray[fd].file->location);
+		free(extent_block);
 
 		// add new block numbers to array
 		fcbArray[fd].block_arr = realloc(fcbArray[fd].block_arr, 
@@ -456,6 +481,7 @@ int b_write (b_io_fd fd, char* buffer, int count)
 	directory[idx] = *fcbArray[fd].file;
 	LBAwrite(directory, fcbArray[fd].parent_dir_entry->len, fcbArray[fd].parent_dir_entry->location);
 
+	free(directory);
 	return bytes_delivered;
 }
 
@@ -583,7 +609,7 @@ int b_read (b_io_fd fd, char * buffer, int count)
 }
 
 // Interface to Close the file	
-int b_close (b_io_fd fd)
+int b_close(b_io_fd fd)
 {
 	// There shouldn't be any content in the buffer, but
 	// we'll let the user know just in case.
@@ -598,6 +624,7 @@ int b_close (b_io_fd fd)
 	// Free the fd from memory
 	free(fcbArray[fd].buf);
 	free(fcbArray[fd].file);
+	free(fcbArray[fd].block_arr);
 	free(fcbArray[fd].parent_dir_entry);
 	fcbArray[fd].buf = NULL;
 	fcbArray[fd].file = NULL;
