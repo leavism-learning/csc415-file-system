@@ -147,9 +147,9 @@ b_io_fd b_open(char* filename, int flags)
 		parent_dir[i] = *target_file;
 		parent_dir[++i].name[0] = '\0';
 		LBAwrite(parent_dir, parent_entry->len, parent_entry->location);
-		free(parent_dir);
-		free(fname);
 	}
+	free(parent_dir);
+	free(fname);
 
 	// The rest of this code is handling when the file does exist
 	// and the flags are set correctly
@@ -209,8 +209,6 @@ b_io_fd b_open(char* filename, int flags)
 
 	free(target_file);
 	free(parent_entry);
-	free(parent_dir);
-	free(fname);
 	return returnFd; // all set
 }
 

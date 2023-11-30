@@ -84,10 +84,8 @@ int get_parent_directory_and_filename(const char* path, char** parent_directory,
 	}
 
 	if (strlen(full_path) < 1) {
-		free(*parent_directory);
 		*parent_directory = strdup("/");
 	} else {
-		free(*parent_directory);
 		*parent_directory = strdup(full_path);
 	}
 
