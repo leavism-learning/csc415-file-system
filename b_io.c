@@ -201,20 +201,17 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 		return (-1); 					//invalid file descriptor
 	}
 
-    // to checks if the file exists
+	// to checks if the file exists
 	if (fcbArray[fd].file == NULL) {
 		return (-1); 			//empty fd
 	}
 
-    // for case of going beyond the start of file
-    // sets to 0 [start of file]
-    if(offset < 0 && fcbArray[fd].buf_index + offset < 0)
-    {
-        fcbArray[fd].buf_index = 0;
-        return 0;
-    }
-
-
+	// for case of going beyond the start of file
+	// sets to 0 [start of file]
+	if(offset < 0 && fcbArray[fd].buf_index + offset < 0) {
+		fcbArray[fd].buf_index = 0;
+		return 0;
+	}
 
 	int numOfBlocks = offset / bfs_vcb->block_size;
 	off_t actualOffset = offset - (bfs_vcb->block_size * numOfBlocks);
@@ -231,7 +228,7 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 		// fcbArray[fd].block_idx += numOfBlocks;
 		fcbArray[fd].buf_index += actualOffset;
 	} else if (whence & SEEK_END) {
-		//TODO handle case of size being multiple of chunk size
+		// TODO handle case of size being multiple of chunk size
 
 		int last_indx_block_arr = fcbArray[fd].file->size / bfs_vcb->block_size;
 		fcbArray[fd].current_block = fcbArray[fd].block_arr[last_indx_block_arr];
@@ -242,8 +239,8 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 
 	fcbArray[fd].file->date_accessed = time(NULL);
 
-    // returns the new start point
-    return fcbArray[fd].buf_index;
+	// returns the new start point
+	return fcbArray[fd].buf_index;
 }
 
 // Interface to write function	

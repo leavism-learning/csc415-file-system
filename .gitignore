@@ -53,3 +53,8 @@ dkms.conf
 
 SampleVolume
 *.sh
+
+.vscode/
+.idea/
+
+.clang-format
