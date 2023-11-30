@@ -27,8 +27,11 @@ int next_block(b_fcb* fcb)
 		  fcb->block_idx - 1, fcb->block_arr[fcb->block_idx - 1]);
 		return 1;
 	}
-	LBAread(fcb->buf, 1, fcb->current_block);
-	printf("New buffer is block %ld\n", fcb->current_block);
+	if (LBAread(fcb->buf, 1, fcb->current_block) != 1) {
+		fprintf(stderr, "Error: Unable to read current block %ld\n", fcb->current_block);
+		return 1;
+	}
+	fcb->buf_index = 0;
 	return 0;
 }
 
@@ -199,7 +202,7 @@ b_io_fd b_open(char* filename, int flags)
 			fprintf(stderr, "Unable to read block %ld\n", block_array[0]);
 			return 1;
 		}
-	}
+	} 
 
 	fcbArray[returnFd].buf = buffer;
 	fcbArray[returnFd].buf_index = 0;
@@ -509,6 +512,7 @@ int b_write (b_io_fd fd, char* buffer, int count)
 //  +-------------+------------------------------------------------+--------+
 int b_read (b_io_fd fd, char * buffer, int count)
 {
+	printf("\n\n\n");
 
 	if (startup == 0) {
 		b_init();  //Initialize our system
@@ -543,23 +547,25 @@ int b_read (b_io_fd fd, char * buffer, int count)
 	int bytes_read = fcbArray[fd].block_idx * bfs_vcb->block_size + 
 		fcbArray[fd].buf_index;
 
-	printf("bytes_read: %d block_idx: %d buf_index: %d\n", bytes_read, fcbArray[fd].block_idx, fcbArray[fd].buf_index);
+	printf("bytes_read: %d block_idx: %d buf_index: %d, count: %d\n", bytes_read, fcbArray[fd].block_idx, fcbArray[fd].buf_index, count);
 	if (bytes_read >= fcbArray[fd].file->size) {
-		fprintf(stderr, "Requested more bytes (%d) than file size (%ld)\n", 
+		fprintf(stderr, "Read more bytes (%d) than file size (%ld)\n", 
 		bytes_read, fcbArray[fd].file->size);
 		return -1;
 	}
 
 	int bytes_available = fcbArray[fd].buf_size - fcbArray[fd].buf_index;
-	int bytes_written = (fcbArray[fd].block_idx * bfs_vcb->block_size) -
-		(bfs_vcb->block_size - bytes_available);
+	int bytes_written = (fcbArray[fd].block_idx * bfs_vcb->block_size) +
+		fcbArray[fd].buf_index;
 
+	printf("bytes available: %d bytes written: %d\n",bytes_available, bytes_written);
 	if ((count + bytes_written) > fcbArray[fd].file->size) {
 		count = fcbArray[fd].file->size - bytes_written;
 		if (count < 0) {
 			fprintf(stderr, "Negative count with %d at block %ld", 
 		   		bytes_written, fcbArray[fd].current_block);
 		}
+		printf("shrunk count to %d\n", count);
 	}
 
 	int part1 = count;
@@ -573,17 +579,23 @@ int b_read (b_io_fd fd, char * buffer, int count)
 		part2 = num_blocks  * bfs_vcb->block_size;
 		part3 = count - bytes_available - part2;
 	}
+
 	printf("part1: %d part2: %d part3: %d num_blocks: %d, bytes_available: %d, count: %d\n", 
 		part1, part2, part3, num_blocks, bytes_available, count);
 
 	if (part1 > 0) {
+		// copy remaining contents of fd buffer into dest
+		printf("current block is %ld\n", fcbArray[fd].current_block);
 		memcpy(buffer, fcbArray[fd].buf + fcbArray[fd].buf_index, part1);
 		fcbArray[fd].buf_index += part1;
 
-		if (next_block(&fcbArray[fd])) {
-			printf("current block: %ld, block_index: %d\n", fcbArray[fd].current_block, fcbArray[fd].block_idx);
-			fprintf(stderr, "next_block in part1 failed\n");
-			return 1;
+		// get new block if necessary
+		if (fcbArray[fd].buf_index >= bfs_vcb->block_size) {
+			if (next_block(&fcbArray[fd])) {
+
+				fprintf(stderr, "next_block in part1 failed\n");
+				return 1;
+			}
 		}
 	}
 
@@ -599,16 +611,8 @@ int b_read (b_io_fd fd, char * buffer, int count)
 		part2 = blocks_read * bfs_vcb->block_size;
 	}
 
+	// read remaining block into buffer
 	if (part3 > 0) {
-		int blocks_read = LBAread(fcbArray[fd].buf, 1, fcbArray[fd].current_block);
-		fcbArray[fd].buf_size = bfs_vcb->block_size;
-
-		if (next_block(&fcbArray[fd])) {
-			fprintf(stderr, "Invalid next block\n");
-			return 1;
-		}
-		fcbArray[fd].buf_index = 0;
-
 		memcpy(buffer + part1 + part2, fcbArray[fd].buf + fcbArray[fd].buf_index, part3);
 		fcbArray[fd].buf_index += part3;
 	}
@@ -620,8 +624,7 @@ int b_read (b_io_fd fd, char * buffer, int count)
 // Interface to Close the file	
 int b_close(b_io_fd fd)
 {
-	// There shouldn't be any content in the buffer, but
-	// we'll let the user know just in case.
+	// write any leftover data in buffer
 	if (!(fcbArray[fd].access_mode & O_RDONLY) && fcbArray[fd].buf_index > 0) {
 		if (fcbArray[fd].current_block == 0) {
 			fprintf(stderr, "Error: Current block is 0\n");
